@@ -1,5 +1,5 @@
-GL_INCLUDE = /usr/X11R6/include
-GL_LIB = /usr/X11R6/lib
+GL_INCLUDE = /usr/X11R6/Dependencies/include
+GL_LIB = /usr/X11R6/Dependencies/lib
 
 main: main.o
 	g++ -o main $^ -L$(GL_LIB) -lm -lGL -lglut -lGLEW
