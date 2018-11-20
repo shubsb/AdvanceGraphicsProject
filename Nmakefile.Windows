@@ -1,5 +1,5 @@
-main.exe: main.obj
-	link /machine:X86 /nologo /out:main.exe /SUBSYSTEM:console main.obj opengl32.lib Dependencies\lib\freeglut.lib Dependencies\lib\glew32.lib
+main.exe: main.obj ShaderProgram.obj
+	link /machine:X86 /nologo /out:main.exe /SUBSYSTEM:console main.obj ShaderProgram.obj opengl32.lib Dependencies\lib\freeglut.lib Dependencies\lib\glew32.lib
 
 .cpp.obj:
 	cl /I Dependencies\include /EHsc /nologo /Fo$@ /c $<

@@ -1,11 +1,14 @@
 #include <GL\glew.h>
 #include <GL\freeglut.h>
 #include <iostream>
+#include "ShaderProgram.h"
 
 using namespace std;
 
 int windowWidth = 1920;
 int windowHeight = 1080;
+
+GLuint programID;
 
 void changeViewport(int w, int h) {
 	glViewport(0,0,w,h);
@@ -13,6 +16,7 @@ void changeViewport(int w, int h) {
 
 void render() {
 	glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
+
 	glutSwapBuffers();
 }
 int main(int argc, char** argv) {
@@ -37,6 +41,9 @@ int main(int argc, char** argv) {
 	std::cout << "Using GLEW " << glewGetString(GLEW_VERSION) << std::endl;
 	std::cout << "Using OpenGL " << glGetString(GL_VERSION) << std::endl;
 
+	ShaderProgram program;
+	program.loadShaders("shaders/flat_vertex.glsl", "shaders/flat_fragment.glsl");
+	programID = program.getProgramId();
 	glutMainLoop();
 
 }
