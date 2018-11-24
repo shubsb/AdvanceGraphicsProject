@@ -1,9 +1,22 @@
 #version 330 core
-out vec4 FragColor;
+layout (location = 0)
 
-in vec4 vertexColor; // the input variable from the vertex shader (same name and same type)
+uniform mat4 u_MVP;
+uniform vec4 u_lightposithin
+in vec3 aPos; // the position variable has attribute position 0
+
+attribute vec4 position;
+attribute vec2 textureCoords;
+attribute vec3 normal;
+
+out vec4 vertexColor; // specify a color output to the fragment shader
+out vec3 surfaceNormal;
+out vec3 worldPosition;
 
 void main()
 {
-    FragColor = vertexColor;
-} 
+    gl_Position = u_MVP * position;
+    vertexColor = vec4(0.5, 0.0, 0.0, 1.0); // set the output variable to a dark-red color
+    worldPosition = gl_Position.xyz;
+    surfaceNormal = normal;
+}

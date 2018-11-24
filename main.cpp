@@ -1,24 +1,31 @@
 #include <GL\glew.h>
 #include <GL\freeglut.h>
+#include <GL\glut.h>
+
 #include <iostream>
 #include "ShaderProgram.h"
+#include "Object.h"
 
 using namespace std;
 
-int windowWidth = 1920;
-int windowHeight = 1080;
-
 GLuint programID;
 
+static void createGeometry(void) {
+	Object mesh;
+	mesh.load("bugatti.obj", true, true);
+	std::cout << "Finished loadingb car .obj file." << std::endl;
+}
 void changeViewport(int w, int h) {
 	glViewport(0,0,w,h);
 }
 
-void render() {
+static void render(void) {
 	glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
-
+	glUseProgram(programID);
 	glutSwapBuffers();
 }
+
+
 int main(int argc, char** argv) {
 	//initialize glut
 	glutInit(&argc, argv);
@@ -27,7 +34,7 @@ int main(int argc, char** argv) {
   glutInitContextProfile(GLUT_CORE_PROFILE);
 
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-	glutInitWindowSize(windowWidth, windowHeight);
+	glutInitWindowSize(800, 600);
 	glutCreateWindow("Graphics Project");
 
 	glutDisplayFunc(&render);
