@@ -1,22 +1,35 @@
-#version 330 core
-layout (location = 0)
+uniform vec4 u_DiffuseColour;
+uniform vec3 u_LightPos;
+uniform vec3 u_EyePosition;
+uniform float u_Shininess;
 
-uniform mat4 u_MVP;
-uniform vec4 u_lightposithin
-in vec3 aPos; // the position variable has attribute position 0
+varying vec3 v_Position;
+varying vec3 v_Normal;
 
-attribute vec4 position;
-attribute vec2 textureCoords;
-attribute vec3 normal;
+void main() {
+   vec4 ambientColour = vec4(0.1, 0.1, 0.1, 1.0);
 
-out vec4 vertexColor; // specify a color output to the fragment shader
-out vec3 surfaceNormal;
-out vec3 worldPosition;
+   // distance between the fragment and the light source (for attenuation)
+   float distance = length(u_LightPos - v_Position);
 
-void main()
-{
-    gl_Position = u_MVP * position;
-    vertexColor = vec4(0.5, 0.0, 0.0, 1.0); // set the output variable to a dark-red color
-    worldPosition = gl_Position.xyz;
-    surfaceNormal = normal;
+   // vector from fragment to light source
+   vec3 light_vector = normalize(u_LightPos - v_Position);
+
+   // diffuse component
+
+   // calculate the diffuse contribution
+   vec3 normal = normalize(v_Normal);
+   float diffuse = clamp(dot(normal, light_vector), 0, 1);
+
+   // attenuate
+   diffuse *= (1.0 / (1.0 + (0.00025 * distance * distance)));
+
+   // specular component
+   vec3 incidence_vector = -light_vector;
+   vec3 reflection_vector = reflect(incidence_vector, normal);
+   vec3 eye_vector = normalize(u_EyePosition - v_Position);
+   float cosAngle = clamp(dot(eye_vector, reflection_vector), 0, 1);
+   float specular = pow(cosAngle, u_Shininess);
+
+   gl_FragColor = specular * u_DiffuseColour + diffuse * u_DiffuseColour + ambientColour;
 }
