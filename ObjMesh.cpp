@@ -228,3 +228,26 @@ unsigned int ObjMesh::getNumIndexedVertices() {
 unsigned int* ObjMesh::getTriangleIndices() {
 	return this->triangleIndices.data();
 }
+
+std::vector<float> ObjMesh::getData(){
+	std::vector<float> platformData;
+	for(int i=0;i<getNumIndexedVertices(); i++){
+
+		//numVertices = getNumIndexedVertices();
+		Vector3* vertexPositions = getIndexedPositions();
+		Vector2* vertexTextureCoords = getIndexedTextureCoords();
+		Vector3* vertexNormals = getIndexedNormals();
+
+		platformData.push_back(vertexPositions[i].x);
+		platformData.push_back(vertexPositions[i].y);
+		platformData.push_back(vertexPositions[i].z);
+
+		platformData.push_back(vertexNormals[i].x);
+		platformData.push_back(vertexNormals[i].y);
+		platformData.push_back(vertexNormals[i].z);
+
+		platformData.push_back(vertexTextureCoords[i].u);
+		platformData.push_back(vertexTextureCoords[i].v);
+	}
+	return platformData;
+}

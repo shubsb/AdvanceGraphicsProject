@@ -1,11 +1,10 @@
-#version 330 core
 uniform vec4 u_DiffuseColour;
 uniform vec3 u_LightPos;
 uniform vec3 u_EyePosition;
 uniform float u_Shininess;
 
-in vec3 v_Position;
-in vec3 v_Normal;
+varying vec3 v_Position;
+varying vec3 v_Normal;
 
 void main() {
    vec4 ambientColour = vec4(0.1, 0.1, 0.1, 1.0);
@@ -32,6 +31,5 @@ void main() {
    float cosAngle = clamp(dot(eye_vector, reflection_vector), 0, 1);
    float specular = pow(cosAngle, u_Shininess);
 
-   //gl_FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f) *(specular * u_DiffuseColour + diffuse * u_DiffuseColour + ambientColour);
-   gl_FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+   gl_FragColor = specular * u_DiffuseColour + diffuse * u_DiffuseColour + ambientColour;
 }

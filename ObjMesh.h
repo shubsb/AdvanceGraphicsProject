@@ -43,4 +43,6 @@ public:
 
 	Vector3 getCentre();
 	Vector3 getDimensions();
+
+	std::vector<float> getData();
 };

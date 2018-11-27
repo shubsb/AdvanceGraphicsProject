@@ -16,58 +16,83 @@
 
 #include "ShaderProgram.h"
 #include "ObjMesh.h"
+#include "BezierCurveRoad.h"
 
 #define SCALE_FACTOR 2.0f
 
 int width, height;
 
 GLuint programId;
-GLuint vertexBuffer;
-GLuint indexBuffer;
 GLenum positionBufferId;
-GLuint positions_vbo = 0;
-GLuint textureCoords_vbo = 0;
-GLuint normals_vbo = 0;
-GLuint colours_vbo = 0;
 
+
+//Road(Cubic Bezier Curve)
+unsigned int VBO[3], VAO[3];
+
+//platform
+unsigned int platformPositionVAO = 0;
+unsigned int platformTextureCoordsVAO = 0;
+unsigned int platformNormalVAO = 0;
+
+unsigned int platformPositionVBO = 0;
+unsigned int platformTextureCoordsVBO = 0;
+unsigned int platformNormalVBO = 0;
+
+unsigned int platformEBO = 0;
+
+BezierCurveRoad road;
+//the xyz coordiantes the make up the road/path
+std::vector<glm::vec3> vertexPositionData;
+
+//used to find out the numVertices in an object when loading it
 unsigned int numVertices;
 
 float angle = 0.0f;
 float lightOffsetY = 0.0f;
-glm::vec3 eyePosition(40, 30, 30);
+glm::vec3 eyePosition(0, 10, 10);
 bool animateLight = true;
 bool rotateObject = true;
-float scaleFactor = 1.0f;
-float lastX = std::numeric_limits<float>::infinity();
-float lastY = std::numeric_limits<float>::infinity();
+
+
+static void setupRoad(){
+  vertexPositionData = road.getPath();
+
+  glBindVertexArray(VAO[0]);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GL_FLOAT) * road.getNumCurves()* road.getNumVertecies() * 3, &vertexPositionData[0], GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT) * 3, (void *)0);
+  glEnableVertexAttribArray(0);
+}
 
 static void createGeomentry(void) {
+  glGenVertexArrays(3, VAO);
+  glGenBuffers(3, VBO);
+  setupRoad();
+
   ObjMesh mesh;
-  mesh.load("Models/teapot.obj", true, true);
+
+  //load the platform(ground)
+  mesh.load("Models/square.obj", true, true);
 
   numVertices = mesh.getNumIndexedVertices();
-  Vector3* vertexPositions = mesh.getIndexedPositions();
-  Vector2* vertexTextureCoords = mesh.getIndexedTextureCoords();
-  Vector3* vertexNormals = mesh.getIndexedNormals();
+  std::vector<float> platformData = mesh.getData();
+  glBindVertexArray(VAO[1]);
+  glBindBuffer(GL_ARRAY_BUFFER,VBO[1]);
+  glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(GL_FLOAT)*8, &platformData[0], GL_STATIC_DRAW);
+  //position
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*8, (void*)0);
+  glEnableVertexAttribArray(0);
+  //normal
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+  glEnableVertexAttribArray(1);
+//indeces for platform
+    unsigned int* indexData = mesh.getTriangleIndices();
+    int numTriangles = mesh.getNumTriangles();
 
-  glGenBuffers(1, &positions_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, positions_vbo);
-  glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), vertexPositions, GL_STATIC_DRAW);
+    glGenBuffers(1, &platformEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTriangles * 3, indexData, GL_STATIC_DRAW);
 
-  glGenBuffers(1, &textureCoords_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, textureCoords_vbo);
-  glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector2), vertexTextureCoords, GL_STATIC_DRAW);
-
-  glGenBuffers(1, &normals_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, normals_vbo);
-  glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vector3), vertexNormals, GL_STATIC_DRAW);
-
-  unsigned int* indexData = mesh.getTriangleIndices();
-  int numTriangles = mesh.getNumTriangles();
-
-  glGenBuffers(1, &indexBuffer);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTriangles * 3, indexData, GL_STATIC_DRAW);
 }
 
 static void update(void) {
@@ -109,10 +134,10 @@ static void render(void) {
    );
 
    // model matrix: translate, scale, and rotate the model
-   glm::vec3 rotationAxis(0,1,0);
    glm::mat4 model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(angle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::scale(model, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+   model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the y-axis
+   //model = glm::rotate(model, glm::radians(angle), glm::vec3(0, 1, 0)); // rotate about the y-axis
+  //  model = glm::scale(model, glm::vec3(10.0f, 10.0f, 0.0f));
 
    // model-view-projection matrix
    glm::mat4 mvp = projection * view * model;
@@ -129,6 +154,7 @@ static void render(void) {
    glUniform3f(eyePosId, eyePosition.x, eyePosition.y, eyePosition.z);
 
    // the position of our light
+   //glm::vec4(1.0f, 0.0f, 0.0f, 0.0f)
    GLuint lightPosId = glGetUniformLocation(programId, "u_LightPos");
    glUniform3f(lightPosId, 1, 8 + lightOffsetY, -2);
 
@@ -140,37 +166,18 @@ static void render(void) {
    GLuint shininessId = glGetUniformLocation(programId, "u_Shininess");
    glUniform1f(shininessId, 25);
 
-   // find the names (ids) of each vertex attribute
-   GLint positionAttribId = glGetAttribLocation(programId, "position");
-   GLint textureCoordsAttribId = glGetAttribLocation(programId, "textureCoords");
-   GLint normalAttribId = glGetAttribLocation(programId, "normal");
+   glUseProgram(programId);
 
-   // provide the vertex positions to the shaders
-   glBindBuffer(GL_ARRAY_BUFFER, positions_vbo);
-   glEnableVertexAttribArray(positionAttribId);
-   glVertexAttribPointer(positionAttribId, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+   //road
+   glBindVertexArray(VAO[0]);
+   glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
 
-   // provide the vertex texture coordinates to the shaders
-   glBindBuffer(GL_ARRAY_BUFFER, textureCoords_vbo);
-   glEnableVertexAttribArray(textureCoordsAttribId);
-   glVertexAttribPointer(textureCoordsAttribId, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+   //platform
+   glBindVertexArray(VAO[1]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
+   glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
 
-   // provide the vertex normals to the shaders
-   glBindBuffer(GL_ARRAY_BUFFER, normals_vbo);
-   glEnableVertexAttribArray(normalAttribId);
-   glVertexAttribPointer(normalAttribId, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-	// draw the triangles
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-	glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
-
-	// disable the attribute arrays
-   glDisableVertexAttribArray(positionAttribId);
-   glDisableVertexAttribArray(textureCoordsAttribId);
-   glDisableVertexAttribArray(normalAttribId);
-
-	// make the draw buffer to display buffer (i.e. display what we have drawn)
-	glutSwapBuffers();
+	 glutSwapBuffers();
 }
 
 static void reshape(int w, int h) {
@@ -181,27 +188,9 @@ static void reshape(int w, int h) {
 }
 
 static void drag(int x, int y) {
-   if (!isinf(lastX) && !isinf(lastY)) {
-      float dx = lastX - (float)x;
-      float dy = lastY - (float)y;
-      float distance = sqrt(dx * dx + dy * dy);
-
-      if (dy > 0.0f) {
-         scaleFactor = SCALE_FACTOR / distance;
-      } else {
-         scaleFactor = distance / SCALE_FACTOR;
-      }
-   } else {
-      lastX = (float)x;
-      lastY = (float)y;
-   }
 }
 
 static void mouse(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
-      lastX = std::numeric_limits<float>::infinity();
-      lastY = std::numeric_limits<float>::infinity();
-    }
 }
 
 static void keyboard(unsigned char key, int x, int y) {
@@ -212,6 +201,8 @@ static void keyboard(unsigned char key, int x, int y) {
       rotateObject = !rotateObject;
     }
 }
+
+
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -232,7 +223,6 @@ int main(int argc, char** argv) {
   }
   std::cout << "Using GLEW " << glewGetString(GLEW_VERSION) << std::endl;
   std::cout << "Using OpenGL " << glGetString(GL_VERSION) << std::endl;
-
   createGeomentry();
   ShaderProgram program;
   program.loadShaders("shaders/flat_vertex.glsl", "shaders/flat_fragment.glsl");
