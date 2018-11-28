@@ -1,4 +1,4 @@
-attribute vec3 position;
+layout(location=0) in vec3 position;
 
 varying vec3 v_TexCoords;
 

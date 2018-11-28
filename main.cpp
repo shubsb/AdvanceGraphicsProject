@@ -38,6 +38,7 @@ bool animateShaders = false;
 
 GLuint skyboxProgramId;
 
+GLuint skybox_vao = 0;
 GLuint skybox_vbo = 0;
 
 unsigned int skyboxTextures[NUM_SKYBOXES];
@@ -128,9 +129,15 @@ static void createSkybox(void) {
   };
   unsigned int numVertices = 36;
 
+  glGenVertexArrays(1, &skybox_vao);
   glGenBuffers(1, &skybox_vbo);
+  glBindVertexArray(skybox_vao);
   glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
   glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(float) * 3, skyboxPositions, GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
 }
 
 static void setupRoad(){
@@ -182,8 +189,10 @@ static void createGeomentry(void) {
 
   glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
   glEnableVertexAttribArray(0);
-  // glVertexAttributePointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
-  // glEnableVertexAtrributeArray(1);
+
+  glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+  glEnableVertexAttribArray(1);
+
   unsigned int* indexDataCar = mesh2.getTriangleIndices();
   int numTrianglesCar = mesh2.getNumTriangles();
 
@@ -262,16 +271,6 @@ static void render(void) {
    int projectionMatrix = glGetUniformLocation(programId,"projection");
    glUniformMatrix4fv(projectionMatrix,1,GL_FALSE,glm::value_ptr(projection));
 
-   // // model-view-projection matrix
-   // glm::mat4 mvp = projection * view * model;
-   // GLuint mvpMatrixId = glGetUniformLocation(programId, "u_MVPMatrix");
-   // glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
-   //
-   // // model-view matrix
-   // glm::mat4 mv = view * model;
-   // GLuint mvMatrixId = glGetUniformLocation(programId, "u_MVMatrix");
-   // glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
-
    // the position of our camera/eye
    GLuint eyePosId = glGetUniformLocation(programId, "u_EyePosition");
    glUniform3f(eyePosId, eyePosition.x, eyePosition.y, eyePosition.z);
@@ -289,6 +288,31 @@ static void render(void) {
    GLuint shininessId = glGetUniformLocation(programId, "u_Shininess");
    glUniform1f(shininessId, 2500);
 
+   // draw the cube map sky box
+   glBindVertexArray(skybox_vao);
+  //texture sampler - a reference to the texture we've previously created
+  GLuint skyboxTextureId  = glGetUniformLocation(skyboxProgramId, "u_TextureSampler");
+  glActiveTexture(GL_TEXTURE0);  // texture unit 0
+  glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+  glUniform1i(skyboxTextureId, 0);
+
+  glUseProgram(skyboxProgramId);
+
+  glDepthMask(GL_FALSE);
+  glDisable(GL_DEPTH_TEST);
+  glFrontFace(GL_CCW);
+  glDisable(GL_CULL_FACE);
+
+  // set model-view matrix
+
+  GLuint skyboxMVMatrixId = glGetUniformLocation(skyboxProgramId, "u_MVMatrix");
+  glUniformMatrix4fv(skyboxMVMatrixId, 1, GL_FALSE, &view[0][0]);
+
+  // set projection matrix
+  GLuint skyboxProjMatrixId = glGetUniformLocation(skyboxProgramId, "u_PMatrix");
+  glUniformMatrix4fv(skyboxProjMatrixId, 1, GL_FALSE, &projection[0][0]);
+  glDrawArrays(GL_TRIANGLES, 0, 36);
+
    glUseProgram(programId);
 
    //road
@@ -300,47 +324,14 @@ static void render(void) {
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
    glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
 
-   model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+
+    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+    glUniformMatrix4fv(modelMatrix,1,GL_FALSE,glm::value_ptr(model));
+
    //Car
    glBindVertexArray(VAO[2]);
    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carVBO);
    glDrawElements(GL_TRIANGLES, numVerticiesCar, GL_UNSIGNED_INT, (void*)0);
-
-   // draw the cube map sky box
-
-  // provide the vertex positions to the shaders
-  // GLint skyboxPositionAttribId = glGetAttribLocation(skyboxProgramId, "position");
-  // glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
-  // glEnableVertexAttribArray(skyboxPositionAttribId);
-  // glVertexAttribPointer(skyboxPositionAttribId, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-  // texture sampler - a reference to the texture we've previously created
-  // GLuint skyboxTextureId  = glGetUniformLocation(skyboxProgramId, "u_TextureSampler");
-  // glActiveTexture(GL_TEXTURE0);  // texture unit 0
-  // glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
-  // glUniform1i(skyboxTextureId, 0);
-  //
-  // glUseProgram(skyboxProgramId);
-
- //  glDepthMask(GL_FALSE);
- //  glDisable(GL_DEPTH_TEST);
- //  glFrontFace(GL_CCW);
- //  glDisable(GL_CULL_FACE);
- //
- //  // set model-view matrix
- //
- //  GLuint skyboxMVMatrixId = glGetUniformLocation(skyboxProgramId, "u_MVMatrix");
- //  glUniformMatrix4fv(skyboxMVMatrixId, 1, GL_FALSE, &view[0][0]);
- //
- //  // set projection matrix
- //  GLuint skyboxProjMatrixId = glGetUniformLocation(skyboxProgramId, "u_PMatrix");
- //  glUniformMatrix4fv(skyboxProjMatrixId, 1, GL_FALSE, &projection[0][0]);
- //
- //  glBindVertexArray(skyboxPositionAttribId);
- //  glDrawArrays(GL_TRIANGLES, 0, 36);
- //
- // // disable the attribute array
- //  glDisableVertexAttribArray(skyboxPositionAttribId);
 
 	glutSwapBuffers();
 }
