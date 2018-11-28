@@ -46,7 +46,7 @@ unsigned int skyboxIndex;
 int lastSkyboxTime = 0;
 bool animateSkyboxes = false;
 
-
+void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo);
 //Road(Cubic Bezier Curve)
 unsigned int VBO[3], VAO[3];
 
@@ -61,7 +61,7 @@ unsigned int platformNormalVBO = 0;
 
 unsigned int platformEBO = 0;
 
-unsigned int carVBO = 0;
+unsigned int carEBO = 0;
 
 BezierCurveRoad road;
 //the xyz coordiantes the make up the road/path
@@ -196,8 +196,8 @@ static void createGeomentry(void) {
   unsigned int* indexDataCar = mesh2.getTriangleIndices();
   int numTrianglesCar = mesh2.getNumTriangles();
 
-  glGenBuffers(1,&carVBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carVBO);
+  glGenBuffers(1,&carEBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carEBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesCar * 3, indexDataCar, GL_STATIC_DRAW);
 
 }
@@ -257,13 +257,10 @@ static void render(void) {
    );
 
    // model matrix: translate, scale, and rotate the model
-   glm::mat4 model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   //model = glm::rotate(model, glm::radians(angle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-   model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+   glm::mat4 baseMatrix = glm::mat4(1.0f);
 
-   int modelMatrix = glGetUniformLocation(programId,"model");
-   glUniformMatrix4fv(modelMatrix,1,GL_FALSE,glm::value_ptr(model));
+   // int modelMatrix = glGetUniformLocation(programId,"model");
+   // glUniformMatrix4fv(modelMatrix,1,GL_FALSE,glm::value_ptr(model));
 
    int viewMatrix = glGetUniformLocation(programId,"view");
    glUniformMatrix4fv(viewMatrix,1,GL_FALSE,glm::value_ptr(view));
@@ -313,25 +310,29 @@ static void render(void) {
   glUniformMatrix4fv(skyboxProjMatrixId, 1, GL_FALSE, &projection[0][0]);
   glDrawArrays(GL_TRIANGLES, 0, 36);
 
+
    glUseProgram(programId);
+   glDepthMask(GL_TRUE);
+   glEnable(GL_DEPTH_TEST);
+
+   glm::mat4 model = baseMatrix;
 
    //road
-   glBindVertexArray(VAO[0]);
-   glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
+    glBindVertexArray(VAO[0]);
+    glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
+  // drawObject(model,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1);
 
-   //platform
-   glBindVertexArray(VAO[1]);
-   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
-   glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
+  //Car
+  model = baseMatrix;
+  drawObject(model,numVerticiesCar,VAO[2],true,carEBO);
+
+  //platform
+  model = baseMatrix;
+  model = glm::scale(model, glm::vec3(20.0f, 20.0f, 20.0f));
+  model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
+  drawObject(model,numVertices,VAO[1],true,platformEBO);
 
 
-    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-    glUniformMatrix4fv(modelMatrix,1,GL_FALSE,glm::value_ptr(model));
-
-   //Car
-   glBindVertexArray(VAO[2]);
-   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carVBO);
-   glDrawElements(GL_TRIANGLES, numVerticiesCar, GL_UNSIGNED_INT, (void*)0);
 
 	glutSwapBuffers();
 }
@@ -341,6 +342,20 @@ static void reshape(int w, int h) {
 
    width = w;
    height = h;
+}
+
+static void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEBO, unsigned int ebo){
+  glm::mat4 model = m;
+  int modelMatrix = glGetUniformLocation(programId,"model");
+  glUniformMatrix4fv(modelMatrix,1,GL_FALSE,glm::value_ptr(model));
+  if(drawEBO){
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glDrawElements(GL_TRIANGLES, numVerticiesCar, GL_UNSIGNED_INT, (void*)0);
+  }else{
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, numVertices);
+  }
 }
 
 // static void drag(int x, int y) {
