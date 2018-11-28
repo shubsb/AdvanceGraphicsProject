@@ -32,11 +32,14 @@
 int width, height;
 
 GLuint programId;
+GLuint skyboxProgramId;
 GLenum positionBufferId;
 
 bool animateShaders = false;
 
-GLuint skyboxProgramId;
+GLuint vertexBuffer;
+GLuint indexBuffer;
+unsigned int personVAO;
 
 GLuint skybox_vao = 0;
 GLuint skybox_vbo = 0;
@@ -70,6 +73,7 @@ std::vector<glm::vec3> vertexPositionData;
 //used to find out the numVertices in an object when loading it
 unsigned int numVertices;
 unsigned int numVerticiesCar;
+unsigned int numVerticiesPerson;
 
 float angle = 0.0f;
 float lightOffsetY = 0.0f;
@@ -150,6 +154,31 @@ static void setupRoad(){
   glEnableVertexAttribArray(0);
 }
 
+static const GLfloat personVertexPositionData[] = {
+    -1.0f, -1.0f,  1.0f,  // front
+     1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,  // back
+     1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f
+};
+static const GLfloat personIndexData[] = {
+  0, 1, 2,   // front
+  3, 2, 1,
+  5, 6, 7,   // back
+  5, 4, 6,
+  1, 7, 3,   // right
+  1, 5, 7,
+  4, 0, 2,   // left
+  4, 2, 6,
+  2, 7, 6,   // top
+  2, 3, 7,
+  0, 4, 5,   // bottom
+  0, 5, 1
+};
+
 static void createGeomentry(void) {
   glGenVertexArrays(3, VAO);
   glGenBuffers(3, VBO);
@@ -157,6 +186,7 @@ static void createGeomentry(void) {
 
   ObjMesh mesh;
   ObjMesh mesh2;
+  ObjMesh mesh3;
 
   //load the platform(ground)
   mesh.load("Models/cube.obj", true, true);
@@ -199,6 +229,29 @@ static void createGeomentry(void) {
   glGenBuffers(1,&carEBO);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carEBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesCar * 3, indexDataCar, GL_STATIC_DRAW);
+
+  // person
+  glGenVertexArrays(1, &personVAO);
+  glGenBuffers(1, &vertexBuffer);
+  mesh3.load("Models/cube.obj", true, true);
+  numVerticiesPerson = mesh3.getNumIndexedVertices();
+  std::vector<float> personData = mesh3.getData();
+  glBindVertexArray(personVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+  glBufferData(GL_ARRAY_BUFFER, numVerticiesPerson * sizeof(GL_FLOAT)*8, &personData[0],GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
+  glEnableVertexAttribArray(0);
+
+  glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+  glEnableVertexAttribArray(1);
+
+  unsigned int* indexDataPerson = mesh3.getTriangleIndices();
+  int numTrianglesPerson = mesh3.getNumTriangles();
+
+  glGenBuffers(1,&indexBuffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesPerson * 3, indexDataPerson, GL_STATIC_DRAW);
 
 }
 
@@ -332,10 +385,91 @@ static void render(void) {
   model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
   //model = glm::translate(model, glm::vec3(1,1,60));
   model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
-  drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
+  //drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
 
+  // Person
+ {
+    float seconds = (float) glutGet(GLUT_ELAPSED_TIME)/1000.0f;
 
+    //Torso
+    glm::mat4 torsoMatrix = baseMatrix;
+    glm::mat4 torsoMatrix2 = baseMatrix;
+    glm::mat4 leftLegMatrix2 = baseMatrix;
+    glm::mat4 rightLegMatrix2 = baseMatrix;
+    torsoMatrix = glm::rotate(torsoMatrix, cos(seconds * 2.0f) * glm::radians(10.0f),glm::vec3(0.0f,1.0f,0.0f));
+    torsoMatrix = glm::translate(torsoMatrix, glm::vec3(0.0f, 20.0f, 0.0f));
+    torsoMatrix = glm::scale(torsoMatrix, glm::vec3(3.5f, 2.5f, 1.5f));
+    torsoMatrix2 = glm::scale(torsoMatrix, glm::vec3(2.0f, 4.0f, 1.5f));
+    drawObject(torsoMatrix2, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
 
+    //Right Hip
+    glm::mat4 rightLegMatrix = glm::translate (torsoMatrix, glm::vec3(2.0,-2.0,0.0f));
+
+    //Left Hip
+    glm::mat4 leftLegMatrix = glm::translate (torsoMatrix, glm::vec3(-2.0,-2.0,0.0f));
+
+    //Right arm
+    glm::mat4 righArmMatrix = glm::translate(torsoMatrix, glm::vec3(3.0, 2.70, 0.0f));
+
+    //left arm
+    glm::mat4 leftArmMatrix = glm::translate(torsoMatrix, glm::vec3(-3.0, 2.70, 0.0f));
+
+    // Head
+    glm::mat4 headMatrix = glm::translate(torsoMatrix, glm::vec3(1.0, 2.5, 0.0f));
+
+    //Right Leg
+  //  rightLegMatrix = glm::rotate(rightLegMatrix,glm::radians(30.0f)*sin(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    rightLegMatrix = glm::translate(rightLegMatrix, glm::vec3(-1.5f, -1.0f, 0.0f));
+    rightLegMatrix = glm::scale(rightLegMatrix, glm::vec3(0.5f, 2.0f, 1.5f));
+    drawObject(rightLegMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    //Right Knee
+    rightLegMatrix = glm::translate(rightLegMatrix, glm::vec3(-1.0f,-0.5,-2.5f));
+
+    // Lower Right Leg
+    //rightLegMatrix = glm::rotate(rightLegMatrix,glm::radians(30.0f)*sin(seconds)+ glm::radians (30.0f),glm::vec3(1.0f,0.0f,0.0f));
+    rightLegMatrix = glm::translate(rightLegMatrix, glm::vec3(1.0f, -1.0f,  2.5f));
+    rightLegMatrix = glm::scale(rightLegMatrix, glm::vec3(0.25f, 1.5f, 1.5f));
+    rightLegMatrix2 = glm::scale(rightLegMatrix, glm::vec3(2.5f, 1.0f, 0.5f));
+    drawObject(rightLegMatrix2, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    //Left Leg
+    //leftLegMatrix = glm::rotate(leftLegMatrix,glm::radians(-30.0f)*sin(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    leftLegMatrix = glm::translate(leftLegMatrix, glm::vec3(1.5f, -1.0f, 0.0f));
+    leftLegMatrix = glm::scale(leftLegMatrix, glm::vec3(0.5f, 2.0f, 1.5f));
+    drawObject(leftLegMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    //Left Knee
+    leftLegMatrix = glm::translate(leftLegMatrix, glm::vec3(-0.5f,0.5f,0.0f));
+
+    //Lower Left Leg
+  //  leftLegMatrix = glm::rotate(leftLegMatrix,glm::radians(-30.0f)*sin(seconds) + glm::radians (30.0f),glm::vec3(1.0f,0.0f,0.0f));
+    leftLegMatrix = glm::translate(leftLegMatrix, glm::vec3(0.5f, -2.0f, 0.0f));
+    leftLegMatrix = glm::scale(leftLegMatrix, glm::vec3(0.5f, 1.5f, 1.5f));
+    leftLegMatrix2 = glm::scale(leftLegMatrix, glm::vec3(2.0f, 1.0f, 0.75f));
+    drawObject(leftLegMatrix2, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    // Right arm
+    righArmMatrix = glm::rotate(righArmMatrix,glm::radians(30.0f)*tan(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    righArmMatrix = glm::translate(righArmMatrix, glm::vec3(-1.5f, -3.0f, 0.0f));
+    righArmMatrix = glm::scale(righArmMatrix, glm::vec3(0.5f, 2.5f, 1.5f));
+    drawObject(righArmMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    // Right elbow
+    //rightArmMatrix = glm::translate(rightArmMatrix, glm::vec3())
+
+    // left arm
+    leftArmMatrix = glm::rotate(leftArmMatrix,glm::radians(30.0f)*tan(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    leftArmMatrix = glm::translate(leftArmMatrix, glm::vec3(1.5f, -3.0f, 0.0f));
+    leftArmMatrix = glm::scale(leftArmMatrix, glm::vec3(0.5f, 2.5f, 1.5f));
+    drawObject(leftArmMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    // head
+    headMatrix = glm::rotate(headMatrix,glm::radians(30.0f)*sin(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    headMatrix = glm::translate(headMatrix, glm::vec3(-1.0f, 0.25f, 0.0f));
+    headMatrix = glm::scale(headMatrix, glm::vec3(1.0f, 1.0f, 1.5f));
+    drawObject(headMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+  }
 	glutSwapBuffers();
 }
 
@@ -422,15 +556,7 @@ int main(int argc, char** argv) {
 
    ShaderProgram skyboxProgram;
    skyboxProgram.loadShaders("shaders/skybox_vertex.glsl", "shaders/skybox_fragment.glsl");
-  	skyboxProgramId = skyboxProgram.getProgramId();
-
-   // output some basic help
-   std::cout << "Controls:" << std::endl;
-   std::cout << "\tLeft click + drag - rotate camera" << std::endl;
-   std::cout << "\tRight click + drag - zoom camera" << std::endl;
-   std::cout << "\tr - Enable/disable object auto-rotation" << std::endl;
-   std::cout << "\ts - Enable/disable shader auto-switching" << std::endl;
-   std::cout << "\tb - Enable/disable environment auto-switching" << std::endl;
+   skyboxProgramId = skyboxProgram.getProgramId();
 
 
   glutMainLoop();
