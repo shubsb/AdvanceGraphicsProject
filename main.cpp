@@ -248,8 +248,19 @@ static void createGeomentry(void) {
 static void update(void) {
     int milliseconds = glutGet(GLUT_ELAPSED_TIME);
 
+    int duration = milliseconds - lastSkyboxTime;
+
+    if((milliseconds - duration) > 1) {
+      duration = milliseconds;
+      angle += 20.0f;
+
+      if(angle >= 360.0f) {
+        angle = 0.0f;
+      }
+    }
+
     if (animateSkyboxes) {
-     int duration = milliseconds - lastSkyboxTime;
+
 
      if (duration > SKYBOX_SWITCH_DELAY) {
         skyboxIndex++;
@@ -378,12 +389,15 @@ static void render(void) {
     model = baseMatrix;
     model = glm::scale(model, glm::vec3(20.0f, 20.0f, 20.0f));
     drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
+    // model = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
 
     //Tires
-    // model = baseMatrix;
     //Back Left Tire
-    model = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
-    drawObject(model,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+    glm::mat4 tireBL = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
+    // tireBL = glm::translate(tireBL, glm::vec3(0.0f,0.5f,0.0f));
+    tireBL = glm::rotate(tireBL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+    // tireBL = glm::translate(tireBL, glm::vec3(0.0f,-1.0f,0.0f));
+    drawObject(tireBL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
 
     //Front Left Tire
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, 2.78f));
