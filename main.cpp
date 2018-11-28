@@ -153,6 +153,14 @@ static void setupRoad(){
   glEnableVertexAttribArray(0);
 }
 
+float leftTiereCenterX = 0;
+float leftTiereCenterY = 0;
+float leftTiereCenterZ = 0;
+
+float rightTiereCenterX = 0;
+float rightTiereCenterY = 0;
+float rightTiereCenterZ = 0;
+
 static void createGeomentry(void) {
   glGenVertexArrays(5, VAO);
   glGenBuffers(5, VBO);
@@ -236,6 +244,28 @@ static void createGeomentry(void) {
     glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
     glEnableVertexAttribArray(1);
 
+    Vector3* tiereData = tireMeshL.getIndexedPositions();
+
+      for(int k=0; k<numVerticiesTireL;k++){
+        leftTiereCenterX += tiereData[k].x;
+        leftTiereCenterY += tiereData[k].y;
+        leftTiereCenterZ += tiereData[k].z;
+      }
+      leftTiereCenterX /= numVerticiesTireL;
+      leftTiereCenterY /= numVerticiesTireL;
+      leftTiereCenterZ /= numVerticiesTireL;
+
+      tiereData = tireMeshR.getIndexedPositions();
+
+        for(int k=0; k<numVerticiesTireR;k++){
+          rightTiereCenterX += tiereData[k].x;
+          rightTiereCenterY += tiereData[k].y;
+          rightTiereCenterZ += tiereData[k].z;
+        }
+        rightTiereCenterX /= numVerticiesTireR;
+        rightTiereCenterY /= numVerticiesTireR;
+        rightTiereCenterZ /= numVerticiesTireR;
+
     unsigned int* indexDataTireR = tireMeshR.getTriangleIndices();
     int numTrianglesTireR = tireMeshR.getNumTriangles();
 
@@ -245,12 +275,11 @@ static void createGeomentry(void) {
 
 }
 
+int duration =0;
 static void update(void) {
     int milliseconds = glutGet(GLUT_ELAPSED_TIME);
 
-    int duration = milliseconds - lastSkyboxTime;
-
-    if((milliseconds - duration) > 1) {
+    if((milliseconds - duration) >  0.5) {
       duration = milliseconds;
       angle += 20.0f;
 
@@ -274,10 +303,10 @@ static void update(void) {
    }
 
     // rotate the shape about the y-axis so that we can see the shading
-    if (rotateObject) {
-      float degrees = (float)milliseconds / 80.0f;
-      angle = degrees;
-    }
+    // if (rotateObject) {
+    //   float degrees = (float)milliseconds / 80.0f;
+    //   angle = degrees;
+    // }
 
     // move the light position over time along the x-axis, so we can see how it affects the shading
     // if (animateLight) {
@@ -371,46 +400,55 @@ static void render(void) {
 
    glm::mat4 model = baseMatrix;
 
-   // //road
-   //  //glBindVertexArray(VAO[0]);
-   //  //glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
-   //  model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
-   //  drawObject(model,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
-   //
-   //
-   //  //platform
-   //  model = baseMatrix;
-   //  model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
-   //  //model = glm::translate(model, glm::vec3(1,1,60));
-   //  model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
-   //  drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
+   //road
+    //glBindVertexArray(VAO[0]);
+    //glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
+    model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
+    drawObject(model,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+
+
+    //platform
+    model = baseMatrix;
+    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
+    //model = glm::translate(model, glm::vec3(1,1,60));
+    model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
+    drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
 
     //Car
     model = baseMatrix;
     model = glm::scale(model, glm::vec3(20.0f, 20.0f, 20.0f));
     drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
-    // model = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
+  //  model = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
 
     //Tires
     //Back Left Tire
     glm::mat4 tireBL = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
-    // tireBL = glm::translate(tireBL, glm::vec3(0.0f,0.5f,0.0f));
+     tireBL = glm::translate(tireBL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
     tireBL = glm::rotate(tireBL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-    // tireBL = glm::translate(tireBL, glm::vec3(0.0f,-1.0f,0.0f));
+     tireBL = glm::translate(tireBL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
     drawObject(tireBL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
 
     //Front Left Tire
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 2.78f));
-    drawObject(model,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+    glm::mat4 tireFL = glm::translate(model, glm::vec3(0.58f, -0.352f, 1.88f));
+    tireFL = glm::translate(tireFL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
+    tireFL = glm::rotate(tireFL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+    tireFL = glm::translate(tireFL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
+    drawObject(tireFL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
 
-    //Front Right Tire
-    model = glm::translate(model, glm::vec3(-1.38f, 0.1f, 0.15f));
-    drawObject(model,numVerticiesTireR,VAO[4],true,tireR_EBO,GL_TRIANGLES);
 
-    //Back Right Tire
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.75f));
-    drawObject(model,numVerticiesTireL,VAO[4],true,tireL_EBO, GL_TRIANGLES);
+    //front right tire
+    glm::mat4 tireFR = glm::translate(model, glm::vec3(-0.8f, -0.222f, -0.73f));
+    tireFR = glm::translate(tireFR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
+    tireFR = glm::rotate(tireFR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+    tireFR = glm::translate(tireFR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
+    drawObject(tireFR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
 
+    //back right tire
+    glm::mat4 tireBR = glm::translate(model, glm::vec3(-0.8f, -0.222f, 2.06f));
+    tireBR = glm::translate(tireBR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
+    tireBR = glm::rotate(tireBR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+    tireBR = glm::translate(tireBR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
+    drawObject(tireBR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
 
 
   	glutSwapBuffers();
