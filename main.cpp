@@ -60,12 +60,15 @@ unsigned int platformNormalVBO = 0;
 
 unsigned int platformEBO = 0;
 
+unsigned int carVBO = 0;
+
 BezierCurveRoad road;
 //the xyz coordiantes the make up the road/path
 std::vector<glm::vec3> vertexPositionData;
 
 //used to find out the numVertices in an object when loading it
 unsigned int numVertices;
+unsigned int numVerticiesCar;
 
 float angle = 0.0f;
 float lightOffsetY = 0.0f;
@@ -146,6 +149,7 @@ static void createGeomentry(void) {
   setupRoad();
 
   ObjMesh mesh;
+  ObjMesh mesh2;
 
   //load the platform(ground)
   mesh.load("Models/square.obj", true, true);
@@ -168,6 +172,24 @@ static void createGeomentry(void) {
     glGenBuffers(1, &platformEBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTriangles * 3, indexData, GL_STATIC_DRAW);
+
+  mesh2.load("Models/Nissan.obj", true, true);
+  numVerticiesCar = mesh2.getNumIndexedVertices();
+  std::vector<float> carData = mesh2.getData();
+  glBindVertexArray(VAO[2]);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
+  glBufferData(GL_ARRAY_BUFFER, numVerticiesCar * sizeof(GL_FLOAT)*8, &carData[0],GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
+  glEnableVertexAttribArray(0);
+  // glVertexAttributePointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+  // glEnableVertexAtrributeArray(1);
+  unsigned int* indexDataCar = mesh2.getTriangleIndices();
+  int numTrianglesCar = mesh2.getNumTriangles();
+
+  glGenBuffers(1,&carVBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carVBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesCar * 3, indexDataCar, GL_STATIC_DRAW);
 
 }
 
@@ -195,10 +217,10 @@ static void update(void) {
     }
 
     // move the light position over time along the x-axis, so we can see how it affects the shading
-    if (animateLight) {
-      float t = milliseconds / 1000.0f;
-      lightOffsetY = sinf(t) * 100;
-    }
+    // if (animateLight) {
+    //   float t = milliseconds / 1000.0f;
+    //   lightOffsetY = sinf(t) * 100;
+    // }
 
     glutPostRedisplay();
 }
@@ -227,19 +249,28 @@ static void render(void) {
 
    // model matrix: translate, scale, and rotate the model
    glm::mat4 model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the y-axis
+   model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0, 1, 0)); // rotate about the y-axis
    //model = glm::rotate(model, glm::radians(angle), glm::vec3(0, 1, 0)); // rotate about the y-axis
-  //  model = glm::scale(model, glm::vec3(10.0f, 10.0f, 0.0f));
+   model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
 
-   // model-view-projection matrix
-   glm::mat4 mvp = projection * view * model;
-   GLuint mvpMatrixId = glGetUniformLocation(programId, "u_MVPMatrix");
-   glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
+   int modelMatrix = glGetUniformLocation(programId,"model");
+   glUniformMatrix4fv(modelMatrix,1,GL_FALSE,glm::value_ptr(model));
 
-   // model-view matrix
-   glm::mat4 mv = view * model;
-   GLuint mvMatrixId = glGetUniformLocation(programId, "u_MVMatrix");
-   glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
+   int viewMatrix = glGetUniformLocation(programId,"view");
+   glUniformMatrix4fv(viewMatrix,1,GL_FALSE,glm::value_ptr(view));
+
+   int projectionMatrix = glGetUniformLocation(programId,"projection");
+   glUniformMatrix4fv(projectionMatrix,1,GL_FALSE,glm::value_ptr(projection));
+
+   // // model-view-projection matrix
+   // glm::mat4 mvp = projection * view * model;
+   // GLuint mvpMatrixId = glGetUniformLocation(programId, "u_MVPMatrix");
+   // glUniformMatrix4fv(mvpMatrixId, 1, GL_FALSE, &mvp[0][0]);
+   //
+   // // model-view matrix
+   // glm::mat4 mv = view * model;
+   // GLuint mvMatrixId = glGetUniformLocation(programId, "u_MVMatrix");
+   // glUniformMatrix4fv(mvMatrixId, 1, GL_FALSE, &mv[0][0]);
 
    // the position of our camera/eye
    GLuint eyePosId = glGetUniformLocation(programId, "u_EyePosition");
@@ -256,54 +287,60 @@ static void render(void) {
 
    // the shininess of the object's surface
    GLuint shininessId = glGetUniformLocation(programId, "u_Shininess");
-   glUniform1f(shininessId, 25);
+   glUniform1f(shininessId, 2500);
 
    glUseProgram(programId);
 
    //road
-   // glBindVertexArray(VAO[0]);
-   // glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
-   //
-   // //platform
-   // glBindVertexArray(VAO[1]);
-   // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
-   // glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
+   glBindVertexArray(VAO[0]);
+   glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
+
+   //platform
+   glBindVertexArray(VAO[1]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
+   glDrawElements(GL_TRIANGLES, numVertices, GL_UNSIGNED_INT, (void*)0);
+
+   model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+   //Car
+   glBindVertexArray(VAO[2]);
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carVBO);
+   glDrawElements(GL_TRIANGLES, numVerticiesCar, GL_UNSIGNED_INT, (void*)0);
 
    // draw the cube map sky box
 
   // provide the vertex positions to the shaders
-  GLint skyboxPositionAttribId = glGetAttribLocation(skyboxProgramId, "position");
-  glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
-  glEnableVertexAttribArray(skyboxPositionAttribId);
-  glVertexAttribPointer(skyboxPositionAttribId, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+  // GLint skyboxPositionAttribId = glGetAttribLocation(skyboxProgramId, "position");
+  // glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
+  // glEnableVertexAttribArray(skyboxPositionAttribId);
+  // glVertexAttribPointer(skyboxPositionAttribId, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
   // texture sampler - a reference to the texture we've previously created
-  GLuint skyboxTextureId  = glGetUniformLocation(skyboxProgramId, "u_TextureSampler");
-  glActiveTexture(GL_TEXTURE0);  // texture unit 0
-  glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
-  glUniform1i(skyboxTextureId, 0);
+  // GLuint skyboxTextureId  = glGetUniformLocation(skyboxProgramId, "u_TextureSampler");
+  // glActiveTexture(GL_TEXTURE0);  // texture unit 0
+  // glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+  // glUniform1i(skyboxTextureId, 0);
+  //
+  // glUseProgram(skyboxProgramId);
 
-  glUseProgram(skyboxProgramId);
-
-  glDepthMask(GL_FALSE);
-  glDisable(GL_DEPTH_TEST);
-  glFrontFace(GL_CCW);
-  glDisable(GL_CULL_FACE);
-
-  // set model-view matrix
-
-  GLuint skyboxMVMatrixId = glGetUniformLocation(skyboxProgramId, "u_MVMatrix");
-  glUniformMatrix4fv(skyboxMVMatrixId, 1, GL_FALSE, &view[0][0]);
-
-  // set projection matrix
-  GLuint skyboxProjMatrixId = glGetUniformLocation(skyboxProgramId, "u_PMatrix");
-  glUniformMatrix4fv(skyboxProjMatrixId, 1, GL_FALSE, &projection[0][0]);
-
-  glBindVertexArray(skyboxPositionAttribId);
-  glDrawArrays(GL_TRIANGLES, 0, 36);
-
- // disable the attribute array
-  glDisableVertexAttribArray(skyboxPositionAttribId);
+ //  glDepthMask(GL_FALSE);
+ //  glDisable(GL_DEPTH_TEST);
+ //  glFrontFace(GL_CCW);
+ //  glDisable(GL_CULL_FACE);
+ //
+ //  // set model-view matrix
+ //
+ //  GLuint skyboxMVMatrixId = glGetUniformLocation(skyboxProgramId, "u_MVMatrix");
+ //  glUniformMatrix4fv(skyboxMVMatrixId, 1, GL_FALSE, &view[0][0]);
+ //
+ //  // set projection matrix
+ //  GLuint skyboxProjMatrixId = glGetUniformLocation(skyboxProgramId, "u_PMatrix");
+ //  glUniformMatrix4fv(skyboxProjMatrixId, 1, GL_FALSE, &projection[0][0]);
+ //
+ //  glBindVertexArray(skyboxPositionAttribId);
+ //  glDrawArrays(GL_TRIANGLES, 0, 36);
+ //
+ // // disable the attribute array
+ //  glDisableVertexAttribArray(skyboxPositionAttribId);
 
 	glutSwapBuffers();
 }
