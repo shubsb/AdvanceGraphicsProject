@@ -48,7 +48,7 @@ bool animateSkyboxes = false;
 
 void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo,GLenum mode);
 //Road(Cubic Bezier Curve)
-unsigned int VBO[3], VAO[3];
+unsigned int VBO[5], VAO[5];
 
 //platform
 unsigned int platformPositionVAO = 0;
@@ -62,14 +62,17 @@ unsigned int platformNormalVBO = 0;
 unsigned int platformEBO = 0;
 
 unsigned int carEBO = 0;
+unsigned int tireL_EBO = 0;
+unsigned int tireR_EBO = 0;
 
 BezierCurveRoad road;
+
 //the xyz coordiantes the make up the road/path
 std::vector<glm::vec3> vertexPositionData;
 
 //used to find out the numVertices in an object when loading it
-unsigned int numVertices;
-unsigned int numVerticiesCar;
+unsigned int numVertices, numVerticiesCar, numVerticiesTireL, numVerticiesTireR;
+
 
 float angle = 0.0f;
 float lightOffsetY = 0.0f;
@@ -151,28 +154,28 @@ static void setupRoad(){
 }
 
 static void createGeomentry(void) {
-  glGenVertexArrays(3, VAO);
-  glGenBuffers(3, VBO);
+  glGenVertexArrays(5, VAO);
+  glGenBuffers(5, VBO);
   setupRoad();
 
-  ObjMesh mesh;
-  ObjMesh mesh2;
+    ObjMesh mesh, carMesh, tireMeshL, tireMeshR;
 
   //load the platform(ground)
-  mesh.load("Models/cube.obj", true, true);
+    mesh.load("Models/cube.obj", true, true);
 
-  numVertices = mesh.getNumIndexedVertices();
-  std::vector<float> platformData = mesh.getData();
-  glBindVertexArray(VAO[1]);
-  glBindBuffer(GL_ARRAY_BUFFER,VBO[1]);
-  glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(GL_FLOAT)*8, &platformData[0], GL_STATIC_DRAW);
-  //position
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*8, (void*)0);
-  glEnableVertexAttribArray(0);
-  //normal
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
-  glEnableVertexAttribArray(1);
-//indeces for platform
+    numVertices = mesh.getNumIndexedVertices();
+    std::vector<float> platformData = mesh.getData();
+    glBindVertexArray(VAO[1]);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO[1]);
+    glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(GL_FLOAT)*8, &platformData[0], GL_STATIC_DRAW);
+    //position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*8, (void*)0);
+    glEnableVertexAttribArray(0);
+    //normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+    glEnableVertexAttribArray(1);
+
+    //indeces for platform
     unsigned int* indexData = mesh.getTriangleIndices();
     int numTriangles = mesh.getNumTriangles();
 
@@ -180,25 +183,65 @@ static void createGeomentry(void) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, platformEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTriangles * 3, indexData, GL_STATIC_DRAW);
 
-  mesh2.load("Models/Nissan.obj", true, true);
-  numVerticiesCar = mesh2.getNumIndexedVertices();
-  std::vector<float> carData = mesh2.getData();
-  glBindVertexArray(VAO[2]);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
-  glBufferData(GL_ARRAY_BUFFER, numVerticiesCar * sizeof(GL_FLOAT)*8, &carData[0],GL_STATIC_DRAW);
+    carMesh.load("Models/Nissan_Body.obj", true, true);
+    numVerticiesCar = carMesh.getNumIndexedVertices();
+    std::vector<float> carData = carMesh.getData();
+    glBindVertexArray(VAO[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
+    glBufferData(GL_ARRAY_BUFFER, numVerticiesCar * sizeof(GL_FLOAT)*8, &carData[0],GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
-  glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
+    glEnableVertexAttribArray(0);
 
-  glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
-  glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+    glEnableVertexAttribArray(1);
 
-  unsigned int* indexDataCar = mesh2.getTriangleIndices();
-  int numTrianglesCar = mesh2.getNumTriangles();
+    unsigned int* indexDataCar = carMesh.getTriangleIndices();
+    int numTrianglesCar = carMesh.getNumTriangles();
 
-  glGenBuffers(1,&carEBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carEBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesCar * 3, indexDataCar, GL_STATIC_DRAW);
+    glGenBuffers(1,&carEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, carEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesCar * 3, indexDataCar, GL_STATIC_DRAW);
+
+    tireMeshL.load("Models/Nissan_TireL.obj", true, true);
+    numVerticiesTireL = tireMeshL.getNumIndexedVertices();
+    std::vector<float> LTireData = tireMeshL.getData();
+    glBindVertexArray(VAO[3]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
+    glBufferData(GL_ARRAY_BUFFER, numVerticiesTireL * sizeof(GL_FLOAT)*8, &LTireData[0],GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+    glEnableVertexAttribArray(1);
+
+    unsigned int* indexDataTireL = tireMeshL.getTriangleIndices();
+    int numTrianglesTireL = tireMeshL.getNumTriangles();
+
+    glGenBuffers(1,&tireL_EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tireL_EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesTireL * 3, indexDataTireL, GL_STATIC_DRAW);
+
+    tireMeshR.load("Models/Nissan_TireR.obj", true, true);
+    numVerticiesTireR = tireMeshR.getNumIndexedVertices();
+    std::vector<float> RTireData = tireMeshR.getData();
+    glBindVertexArray(VAO[4]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
+    glBufferData(GL_ARRAY_BUFFER, numVerticiesTireR * sizeof(GL_FLOAT)*8, &RTireData[0],GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+    glEnableVertexAttribArray(1);
+
+    unsigned int* indexDataTireR = tireMeshR.getTriangleIndices();
+    int numTrianglesTireR = tireMeshR.getNumTriangles();
+
+    glGenBuffers(1,&tireR_EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tireR_EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesTireR * 3, indexDataTireR, GL_STATIC_DRAW);
 
 }
 
@@ -317,26 +360,46 @@ static void render(void) {
 
    glm::mat4 model = baseMatrix;
 
-   //road
-    //glBindVertexArray(VAO[0]);
-    //glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
-    model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
-    drawObject(model,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+   // //road
+   //  //glBindVertexArray(VAO[0]);
+   //  //glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
+   //  model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
+   //  drawObject(model,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+   //
+   //
+   //  //platform
+   //  model = baseMatrix;
+   //  model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
+   //  //model = glm::translate(model, glm::vec3(1,1,60));
+   //  model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
+   //  drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
 
-  //Car
-  model = baseMatrix;
-  drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
+    //Car
+    model = baseMatrix;
+    model = glm::scale(model, glm::vec3(20.0f, 20.0f, 20.0f));
+    drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
 
-  //platform
-  model = baseMatrix;
-  model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
-  //model = glm::translate(model, glm::vec3(1,1,60));
-  model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
-  drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
+    //Tires
+    // model = baseMatrix;
+    //Back Left Tire
+    model = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
+    drawObject(model,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+
+    //Front Left Tire
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 2.78f));
+    drawObject(model,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+
+    //Front Right Tire
+    model = glm::translate(model, glm::vec3(-1.38f, 0.1f, 0.15f));
+    drawObject(model,numVerticiesTireR,VAO[4],true,tireR_EBO,GL_TRIANGLES);
+
+    //Back Right Tire
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.75f));
+    drawObject(model,numVerticiesTireL,VAO[4],true,tireL_EBO, GL_TRIANGLES);
 
 
 
-	glutSwapBuffers();
+  	glutSwapBuffers();
 }
 
 static void reshape(int w, int h) {
