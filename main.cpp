@@ -46,7 +46,7 @@ unsigned int skyboxIndex;
 int lastSkyboxTime = 0;
 bool animateSkyboxes = false;
 
-void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo);
+void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo,GLenum mode);
 //Road(Cubic Bezier Curve)
 unsigned int VBO[3], VAO[3];
 
@@ -159,7 +159,7 @@ static void createGeomentry(void) {
   ObjMesh mesh2;
 
   //load the platform(ground)
-  mesh.load("Models/square.obj", true, true);
+  mesh.load("Models/cube.obj", true, true);
 
   numVertices = mesh.getNumIndexedVertices();
   std::vector<float> platformData = mesh.getData();
@@ -318,19 +318,21 @@ static void render(void) {
    glm::mat4 model = baseMatrix;
 
    //road
-    glBindVertexArray(VAO[0]);
-    glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
-  // drawObject(model,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1);
+    //glBindVertexArray(VAO[0]);
+    //glDrawArrays(GL_LINE_STRIP, 0, road.getNumCurves()*road.getNumVertecies());
+    model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
+    drawObject(model,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
 
   //Car
   model = baseMatrix;
-  drawObject(model,numVerticiesCar,VAO[2],true,carEBO);
+  drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
 
   //platform
   model = baseMatrix;
-  model = glm::scale(model, glm::vec3(20.0f, 20.0f, 20.0f));
   model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
-  drawObject(model,numVertices,VAO[1],true,platformEBO);
+  //model = glm::translate(model, glm::vec3(1,1,60));
+  model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
+  drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
 
 
 
@@ -344,33 +346,23 @@ static void reshape(int w, int h) {
    height = h;
 }
 
-static void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEBO, unsigned int ebo){
+static void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEBO, unsigned int ebo,GLenum mode){
   glm::mat4 model = m;
   int modelMatrix = glGetUniformLocation(programId,"model");
   glUniformMatrix4fv(modelMatrix,1,GL_FALSE,glm::value_ptr(model));
   if(drawEBO){
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glDrawElements(GL_TRIANGLES, numVerticiesCar, GL_UNSIGNED_INT, (void*)0);
+    glDrawElements(mode, numVerticiesCar, GL_UNSIGNED_INT, (void*)0);
   }else{
     glBindVertexArray(vao);
-    glDrawArrays(GL_TRIANGLES, 0, numVertices);
+    glDrawArrays(mode, 0, numVertices);
   }
 }
 
-// static void drag(int x, int y) {
-// }
-//
-// static void mouse(int button, int state, int x, int y) {
-// }
 
 static void keyboard(unsigned char key, int x, int y) {
     std::cout << "Key pressed: " << key << std::endl;
-    if (key == 'l') {
-      animateLight = !animateLight;
-    } else if (key == 'r') {
-      rotateObject = !rotateObject;
-    }
 }
 
 

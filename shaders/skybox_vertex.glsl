@@ -5,6 +5,7 @@ varying vec3 v_TexCoords;
 uniform mat4 u_MVMatrix;
 uniform mat4 u_PMatrix;
 
+
 void main() {
    v_TexCoords = vec3(-position.x, position.y, -position.z);
 
