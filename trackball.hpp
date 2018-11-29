@@ -75,6 +75,7 @@ static void drag(int x, int y) {
       lastX = (float)x;
       lastY = (float)y;
    }
+
 }
 
 static void mouse(int button, int state, int x, int y) {

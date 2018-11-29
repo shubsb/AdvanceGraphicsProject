@@ -9,25 +9,18 @@ void BezierCurveRoad::createRoad(){
 
   //the control points for the bezier curves
   glm::vec3 controlPoints[]={
-    glm::vec3(-1.0f,0.0f,0.0f),
-    glm::vec3(-0.5f,0.0f,0.0f),
-    glm::vec3(-0.25f,0.0f,0.0f),
-    glm::vec3(0.0f,0.0f,0.0f),
 
-    glm::vec3(0.0f,0.0f,0.0f),
-    glm::vec3(0.25f,0.0f,0.0f),
-    glm::vec3(0.5f,0.0f,0.0f),
-    glm::vec3(1.0f,0.0f,0.0f),
+    //curve 1
+    glm::vec3(-35.0f,0.0f,-35.0f),
+    glm::vec3(-10.0f,0.0f,-35.0f),
+    glm::vec3(10.0f,0.0f,-35.0f),
+    glm::vec3(25.0f,0.0f,-35.0f),
 
-    glm::vec3(1.0f,0.0f,0.0f),
-    glm::vec3(1.25f,0.0f,0.0f),
-    glm::vec3(1.5f,0.0f,0.0f),
-    glm::vec3(1.75f,0.0f,0.0f),
-
-    glm::vec3(1.75f,0.0f,0.0f),
-    glm::vec3(2.5f,0.0f,0.0f),
-    glm::vec3(2.5f,0.5f,0.0f),
-    glm::vec3(2.5f,0.8f,0.0f)
+    //curve 2
+    glm::vec3(25.0f,0.0f,-35.0f),
+    glm::vec3(30.0f,0.0f,-35.0f),
+    glm::vec3(45.0f,0.0f,-20.0f),
+    glm::vec3(45.0f,0.0f,-15.0f)
   };
 
   float x, y, z;

@@ -14,7 +14,7 @@ class BezierCurveRoad{
     int numVertices = 1000;
 
     //how many cuves combined make up the path
-    int numCurves = 4;
+    int numCurves = 2;
 
     //total number of control points
     int cpTotal = numCurves*4;
