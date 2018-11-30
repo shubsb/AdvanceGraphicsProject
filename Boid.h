@@ -31,7 +31,7 @@ public:
   Boid(glm::vec3 a_position): position(a_position){
     velocity = glm::normalize(a_position)*3.0f;
   };
-  
+
   void CapVelocity(float maxSpeed);
   void ApplyCohesion(glm::vec3 cohesionVector);
   void ApplySeperation(glm::vec3 seperationVector);

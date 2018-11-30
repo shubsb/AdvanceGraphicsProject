@@ -39,7 +39,7 @@ GLenum positionBufferId;
 bool animateShaders = false;
 
 GLuint skyboxProgramId;
-GLuint skybox_vao = 0;
+GLuint skybox_vao = 00;
 GLuint skybox_vbo = 0;
 
 unsigned int skyboxTextures[NUM_SKYBOXES];
@@ -47,7 +47,7 @@ unsigned int skyboxIndex;
 int lastSkyboxTime = 0;
 bool animateSkyboxes = false;
 
-const int BOIDS_COUNT = 10;
+const int BOIDS_COUNT = 200;
 BoidManager* manager;
 float deltaTime = 0.0f;
 float prevTime = 0.0f;
@@ -566,9 +566,11 @@ static void render(void) {
       float angle = glm::atan(direction.z, direction.x);
 
       glm::mat4 bat = zoom;
-      bat = glm::translate(bat, glm::vec3(b.position.x+(0.5*i),b.position.y,b.position.z));
+      // bat = glm::translate(bat, glm::vec3(b.position.x+(0.5*i),b.position.y,b.position.z));
+      bat = glm::translate(bat, b.position);
+      bat = glm::translate(bat, glm::vec3(0.0f,15.0f,0.0f));
       bat = glm::rotate(bat, angle+glm::radians(-90.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-      bat = glm::scale(bat, glm::vec3(0.01f));
+      bat = glm::scale(bat, glm::vec3(0.005f));
       drawObject(bat,numVerticesBoid,VAO[5],true,boid_EBO, GL_TRIANGLES);
     }
   }
