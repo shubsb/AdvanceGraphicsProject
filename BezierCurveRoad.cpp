@@ -74,7 +74,7 @@ void BezierCurveRoad::createRoad(){
 				vertexTangentData.push_back(tangentOnCurve);
 			}
 			pickPoint++;
-			if (pickPoint == 100 ) {
+			if (pickPoint == 100) {
 				pickPoint = 0;
 			}
 			vertexPositionData.push_back(pointOnCurve);
@@ -94,7 +94,7 @@ void BezierCurveRoad::createRoad(){
 		normalOnCurve = glm::cross(glm::vec3(0, 1, 0), tangentOnCurve);
 
 		//pick the next point on the curve
-		nextPointOnCurve = vertexPositionData2[j + 1];
+		nextPointOnCurve = vertexPositionData2[j + 1];  
 		//tangent for that point
 		nextTangentOnCurve = vertexTangentData[j + 1];
 		//find normal for that point

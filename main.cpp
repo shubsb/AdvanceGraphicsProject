@@ -95,6 +95,7 @@ float cameraRadius = 100.0f;
 
 static unsigned int createCubemap(std::vector<std::string> filenames);
 
+
 static GLuint createTexture(std::string filename) {
   int width, height, numChannels;
   unsigned char *bitmap = stbi_load(filename.c_str(), &width, &height, &numChannels, 4);
@@ -380,8 +381,7 @@ static void update(void) {
     seconds = (float) glutGet(GLUT_ELAPSED_TIME)/1000.0f;
     manager->UpdateBoids(deltaTime);
 
-    if((time - duration) >  0.1) {
-
+    if((time - duration) >  0.01) {
       carPosition = vertexPositionData[carPositionIndex];
       carPositionIndex++;
 
@@ -527,9 +527,20 @@ static void render(void) {
    glm::mat4 model = zoom;
 
     {   //road
+
       glm::mat4 roadMatrix = zoom;
+
+      //draw the path for the car using bezier curve
       roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,1.0,0.0));
-    drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+      drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+
+      /*
+       *draws the road on the bezier curve but having some trouble with it
+       *some of the bezier curves roads dont come out clean
+       *so not displaying it
+      */
+      glBindVertexArray(roadVAO);
+      //drawObject(roadMatrix,road.getNumNormals()*road.getNumCurves()*3,roadVAO,false,-1,GL_TRIANGLES);
     }
 
     {    //platform
@@ -635,7 +646,7 @@ static void render(void) {
     model = zoom;
     model = glm::translate(model, carPosition);
     model = glm::translate(model,glm::vec3(0.0f,1.2f,0.0f));
-    model = glm::rotate(model,glm::radians(90.0f),glm::vec3(0.0f,1.0f,0.0f));
+    //model = glm::rotate(model,glm::radians(90.0f),glm::vec3(0.0f,1.0f,0.0f));
     //model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
     drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
 }

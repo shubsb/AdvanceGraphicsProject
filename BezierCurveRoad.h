@@ -14,7 +14,7 @@ class BezierCurveRoad{
     int numVertices = 1000;
 
     //how many cuves combined make up the path
-    int numCurves = 4;
+    int numCurves = 6;
 
     int numNormal =0;
 
@@ -30,44 +30,48 @@ class BezierCurveRoad{
     std::vector<glm::vec3> normalsVector;
     std::vector<glm::vec2> uvsVector;
 
-    glm::vec3 controlPoints[16]={
-      //curve 1
-      // glm::vec3(-35.0f,0.0f,-35.0f),
-      // glm::vec3(-35.0f,0.0f,-10.0f),
-      // glm::vec3(-35.0f,0.0f,10.0f),
-      // glm::vec3(-35.0f,0.0f,25.0f),
+    glm::vec3 controlPoints[24]={
 
-      //curve 2
-      // glm::vec3(25.0f,0.0f,-35.0f),
-      // glm::vec3(30.0f,0.0f,-35.0f),
-      // glm::vec3(45.0f,0.0f,-20.0f),
-      // glm::vec3(45.0f,0.0f,-15.0f)
-
-      glm::vec3(15.0f,0.0f,-35.0f),
-      glm::vec3(15.0f,0.0f,-35.0f),
+      glm::vec3(15.0f,0.0f,-25.0f),
+      glm::vec3(15.0f,0.0f,-25.0f),
       glm::vec3(15.0f,0.0f,-20.0f),
       glm::vec3(15.0f,0.0f, 15.0f),
 
       glm::vec3(15.0f,0.0f,15.0f),
-      glm::vec3(15.0f,0.0f,15.0f),
-      glm::vec3(15.0f,0.0f,15.0f),
-      glm::vec3(15.0f,0.0f,15.0f),
-
-      glm::vec3(15.0f,0.0f,15.0f),
-      glm::vec3(15.0f,0.0f,15.0f),
-      glm::vec3(15.0f,0.0f,15.0f),
-      glm::vec3(15.0f,0.0f,15.0f),
-
-      glm::vec3(15.0f,0.0f,15.0f),
       glm::vec3(15.0f,0.0f,20.0f),
-      glm::vec3(10.0f,0.0f,25.0f),
-      glm::vec3(5.0f,0.0f,30.0f)
+      glm::vec3(10.0f,0.0f,20.0f),
+      glm::vec3(5.0f,0.0f,20.0f),
+
+      glm::vec3(5.0f,0.0f,20.0f),
+      glm::vec3(0.0f,0.0f,20.0f),
+      glm::vec3(-5.0f,0.0f,20.0f),
+      glm::vec3(-5.0f,0.0f,10.0f),
+
+      glm::vec3(-5.0f,0.0f,10.0f),
+      glm::vec3(-5.0f,0.0f,5.0f),
+      glm::vec3(-5.0f,0.0f,1.0f),
+      glm::vec3(-5.0f,0.0f,-5.0f),
+
+      glm::vec3(-5.0f,0.0f,-5.0f),
+      glm::vec3(-5.0f,0.0f,-10.0f),
+      glm::vec3(-5.0f,0.0f,-15.0f),
+      glm::vec3(-5.0f,0.0f,-20.0f),
+
+      glm::vec3(-5.0f,0.0f,-20.0f),
+      glm::vec3(-5.0f,0.0f,-25.0f),
+      glm::vec3(5.0f,0.0f,-25.0f),
+      glm::vec3(15.0f,0.0f,-25.0f)
     };
 
     //create road/path using cubic bezier curves for the car to follow
     void createRoad();
+
+    //add triangles to draw road along path
     void AddTriangle(glm::vec3 pointA, glm::vec3 pointB, glm::vec3 pointC);
+    //get points on bezier curve
     glm::vec3 getPoint(float t,int curve);
+
+    //get tangent to curve used to calculate normals to form triangle
     glm::vec3 getFirstDerivativePoint(float t, int curve);
 
   public:
