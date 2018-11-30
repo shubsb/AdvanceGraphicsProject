@@ -39,7 +39,7 @@ GLenum positionBufferId;
 bool animateShaders = false;
 
 GLuint skyboxProgramId;
-GLuint skybox_vao = 0;
+GLuint skybox_vao = 00;
 GLuint skybox_vbo = 0;
 
 unsigned int skyboxTextures[NUM_SKYBOXES];
@@ -47,8 +47,10 @@ unsigned int skyboxIndex;
 int lastSkyboxTime = 0;
 bool animateSkyboxes = false;
 
-const int BOIDS_COUNT = 10;
+const int BOIDS_COUNT = 200;
 BoidManager* manager;
+float deltaTime = 0.0f;
+float prevTime = 0.0f;
 
 void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo,GLenum mode);
 //Road(Cubic Bezier Curve)
@@ -355,9 +357,16 @@ static void createGeomentry(void) {
 int duration =0;
 int carPositionIndex =0;
 glm::vec4 lightPos;
+
 static void update(void) {
-    int milliseconds = glutGet(GLUT_ELAPSED_TIME);
-    if((milliseconds - duration) >  0.1) {
+    int time = glutGet(GLUT_ELAPSED_TIME);
+
+    int time2 = glutGet(GLUT_ELAPSED_TIME)/100;
+    deltaTime = time2 - prevTime;
+	  prevTime = time2;
+    manager->UpdateBoids(deltaTime);
+
+    if((time - duration) >  0.1) {
 
       carPosition = vertexPositionData[carPositionIndex];
       carPositionIndex++;
@@ -370,7 +379,7 @@ static void update(void) {
       if(angle >= 360.0f) {
         angle = 0.0f;
       }
-      duration = milliseconds;
+      duration = time;
     }
 
     glm::vec4 lightPosDir[2] = {
@@ -400,7 +409,7 @@ static void update(void) {
            skyboxIndex = 0;
         }
 
-        lastSkyboxTime = milliseconds;
+        lastSkyboxTime = time;
      }
    }
 
@@ -569,16 +578,18 @@ static void render(void) {
 
   {
     //bat
-    for (int i =0;  i < BOIDS_COUNT; i++){
+    for (int i =0;  i < manager->boids.size(); i++){
     	Boid b = manager->boids[i];
 
       glm::vec3 direction = glm::normalize(b.velocity);
       float angle = glm::atan(direction.z, direction.x);
 
       glm::mat4 bat = zoom;
-      bat = glm::translate(bat, glm::vec3(b.position.x+(0.5*i),b.position.y,b.position.z));
+      // bat = glm::translate(bat, glm::vec3(b.position.x+(0.5*i),b.position.y,b.position.z));
+      bat = glm::translate(bat, b.position);
+      bat = glm::translate(bat, glm::vec3(0.0f,15.0f,0.0f));
       bat = glm::rotate(bat, angle+glm::radians(-90.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-      bat = glm::scale(bat, glm::vec3(0.01f));
+      bat = glm::scale(bat, glm::vec3(0.005f));
       drawObject(bat,numVerticesBoid,VAO[5],true,boid_EBO, GL_TRIANGLES);
     }
   }
