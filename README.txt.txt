@@ -13,6 +13,9 @@ Project Summary
 - bats in the sky acting as BOIDS
 - Skybox added using texture mapping.
 
+Note**
+- To zoom in and out hold right click and move cursor.
+- To move camera hold left click and move cursor.
 
 Licensing for Ice River Skybox textures
 
