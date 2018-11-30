@@ -54,6 +54,7 @@ void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, un
 //Road(Cubic Bezier Curve)
 unsigned int VBO[6], VAO[6];
 
+unsigned int roadVBO,roadVAO;
 //platform
 GLuint platformTextureId;
 
@@ -66,8 +67,11 @@ unsigned int boid_EBO = 0;
 
 BezierCurveRoad road;
 
-//the xyz coordiantes the make up the road/path
+//the xyz coordiantes the make up the path of the road
 std::vector<glm::vec3> vertexPositionData;
+
+//vertices used to make the triangles to make the road aroud the beizier curve
+std::vector<glm::vec3> verticesVector;
 
 //used to find out the numVertices in an object when loading it
 unsigned int numVertices, numVerticiesCar, numVerticiesTireL, numVerticiesTireR, numVerticesBoid;
@@ -114,6 +118,7 @@ static GLuint createTexture(std::string filename) {
 }
 
 static void createSkybox(void) {
+
   float skyboxPositions[] = {
     -1.0f,  1.0f, -1.0f,
     -1.0f, -1.0f, -1.0f,
@@ -171,10 +176,17 @@ static void createSkybox(void) {
 
 static void setupRoad(){
   vertexPositionData = road.getPath();
-
+  verticesVector = road.getRoad();
+ //std::cout << "got path" << std::endl;
   glBindVertexArray(VAO[0]);
   glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
   glBufferData(GL_ARRAY_BUFFER, sizeof(GL_FLOAT) * road.getNumCurves()* road.getNumVertecies() * 3, &vertexPositionData[0], GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT) * 3, (void *)0);
+  glEnableVertexAttribArray(0);
+
+  glBindVertexArray(roadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, roadVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GL_FLOAT)  *verticesVector.size()*3,&verticesVector[0], GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT) * 3, (void *)0);
   glEnableVertexAttribArray(0);
 }
@@ -196,6 +208,8 @@ float rightTiereCenterZ = 0;
 static void createGeomentry(void) {
   glGenVertexArrays(6, VAO);
   glGenBuffers(6, VBO);
+  glGenVertexArrays(1, &roadVAO);
+  glGenBuffers(1, &roadVBO);
   setupRoad();
 
     ObjMesh mesh, carMesh, tireMeshL, tireMeshR, boidMesh;
@@ -489,8 +503,13 @@ static void render(void) {
 
     {   //road
       glm::mat4 roadMatrix = zoom;
-      roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,1.0,0.0));
-    drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+      roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,2.0,0.0));
+            //roadMatrix = glm::scale(roadMatrix,glm::vec3(100.0f, 100.0f, 100.0f));
+      drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+
+      glBindVertexArray(roadVAO);
+      drawObject(roadMatrix,road.getNumNormals()*road.getNumCurves()*3,roadVAO,false,-1,GL_TRIANGLES);
+      //glDrawArrays(GL_TRIANGLES, 0,numNormal*numCurves*3);
     }
 
     {    //platform
