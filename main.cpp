@@ -56,7 +56,7 @@ float prevTime = 0.0f;
 
 void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo,GLenum mode);
 //Road(Cubic Bezier Curve)
-unsigned int VBO[6], VAO[6];
+unsigned int VBO[6], VAO[6],roadVAO;
 
 GLuint vertexBuffer;
 unsigned int personVAO;
