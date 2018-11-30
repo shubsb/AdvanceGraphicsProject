@@ -70,7 +70,7 @@ BezierCurveRoad road;
 std::vector<glm::vec3> vertexPositionData;
 
 //used to find out the numVertices in an object when loading it
-unsigned int numVertices, numVerticiesCar, numVerticiesTireL, numVerticiesTireR;
+unsigned int numVertices, numVerticiesCar, numVerticiesTireL, numVerticiesTireR, numVerticesBoid;
 
 glm::vec3 carPosition(0.0f,0.0f,0.0f);
 
@@ -316,11 +316,11 @@ static void createGeomentry(void) {
 
 
     boidMesh.load("Models/bat.obj", true, true);
-    numVerticiesCar = boidMesh.getNumIndexedVertices();
+    numVerticesBoid = boidMesh.getNumIndexedVertices();
     std::vector<float> boidData = boidMesh.getData();
     glBindVertexArray(VAO[5]);
     glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
-    glBufferData(GL_ARRAY_BUFFER, numVerticiesCar * sizeof(GL_FLOAT)*8, &boidData[0],GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, numVerticesBoid * sizeof(GL_FLOAT)*8, &boidData[0],GL_STATIC_DRAW);
 
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
     glEnableVertexAttribArray(0);
@@ -487,82 +487,80 @@ static void render(void) {
 
    glm::mat4 model = zoom;
 
-//     {   //road
-//       glm::mat4 roadMatrix = zoom;
-//       roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,1.0,0.0));
-//     drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
-//     }
-//
-//     {    //platform
-//     GLuint colourId = glGetUniformLocation(programId, "u_color");
-//     glUniform3fv(colourId, 1, &platformColor[0]);
-//     glm::mat4 platform = zoom;
-//     platform = glm::rotate(platform, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
-//     //model = glm::translate(model, glm::vec3(1,1,60));
-//     platform = glm::scale(platform, glm::vec3(100.0f, 100.0f, 1.0f));
-//     drawObject(platform,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
-//   }
-//
-//   { //car
-//     GLuint colourId = glGetUniformLocation(programId, "u_color");
-//       glUniform3fv(colourId, 1, &carColor[0]);
-//     //Car
-//     glm::mat4 car = zoom;
-//     car = glm::translate(car, carPosition);
-//     car = glm::translate(car,glm::vec3(0.0f,1.2f,0.0f));
-//     car = glm::rotate(car,glm::radians(90.0f),glm::vec3(0.0f,1.0f,0.0f));
-//     //model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
-//     drawObject(car,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
-// }
-//
-// {    //Tires
-//     GLuint colourId = glGetUniformLocation(programId, "u_color");
-//     glUniform3fv(colourId, 1, &tireColor[0]);
-//     //Back Left Tire
-//     glm::mat4 tireBL = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
-//      tireBL = glm::translate(tireBL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
-//     tireBL = glm::rotate(tireBL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-//      tireBL = glm::translate(tireBL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
-//     drawObject(tireBL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
-//
-//     //Front Left Tire
-//     glm::mat4 tireFL = glm::translate(model, glm::vec3(0.58f, -0.352f, 1.88f));
-//     tireFL = glm::translate(tireFL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
-//     tireFL = glm::rotate(tireFL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-//     tireFL = glm::translate(tireFL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
-//     drawObject(tireFL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
-//
-//
-//     //front right tire
-//     glm::mat4 tireFR = glm::translate(model, glm::vec3(-0.8f, -0.222f, -0.73f));
-//     tireFR = glm::translate(tireFR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
-//     tireFR = glm::rotate(tireFR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-//     tireFR = glm::translate(tireFR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
-//     drawObject(tireFR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
-//
-//     //back right tire
-//     glm::mat4 tireBR = glm::translate(model, glm::vec3(-0.8f, -0.222f, 2.06f));
-//     tireBR = glm::translate(tireBR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
-//     tireBR = glm::rotate(tireBR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-//     tireBR = glm::translate(tireBR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
-//     drawObject(tireBR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
-//   }
+    {   //road
+      glm::mat4 roadMatrix = zoom;
+      roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,1.0,0.0));
+    drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+    }
+
+    {    //platform
+    GLuint colourId = glGetUniformLocation(programId, "u_color");
+    glUniform3fv(colourId, 1, &platformColor[0]);
+    glm::mat4 platform = zoom;
+    platform = glm::rotate(platform, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
+    //model = glm::translate(model, glm::vec3(1,1,60));
+    platform = glm::scale(platform, glm::vec3(100.0f, 100.0f, 1.0f));
+    drawObject(platform,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
+  }
+
+  { //car
+    GLuint colourId = glGetUniformLocation(programId, "u_color");
+      glUniform3fv(colourId, 1, &carColor[0]);
+    //Car
+    model = zoom;
+    model = glm::translate(model, carPosition);
+    model = glm::translate(model,glm::vec3(0.0f,1.2f,0.0f));
+    model = glm::rotate(model,glm::radians(90.0f),glm::vec3(0.0f,1.0f,0.0f));
+    //model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
+    drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
+}
+
+{    //Tires
+    GLuint colourId = glGetUniformLocation(programId, "u_color");
+    glUniform3fv(colourId, 1, &tireColor[0]);
+    //Back Left Tire
+    glm::mat4 tireBL = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
+     tireBL = glm::translate(tireBL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
+    tireBL = glm::rotate(tireBL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+     tireBL = glm::translate(tireBL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
+    drawObject(tireBL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+
+    //Front Left Tire
+    glm::mat4 tireFL = glm::translate(model, glm::vec3(0.58f, -0.352f, 1.88f));
+    tireFL = glm::translate(tireFL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
+    tireFL = glm::rotate(tireFL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+    tireFL = glm::translate(tireFL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
+    drawObject(tireFL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+
+
+    //front right tire
+    glm::mat4 tireFR = glm::translate(model, glm::vec3(-0.8f, -0.222f, -0.73f));
+    tireFR = glm::translate(tireFR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
+    tireFR = glm::rotate(tireFR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+    tireFR = glm::translate(tireFR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
+    drawObject(tireFR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
+
+    //back right tire
+    glm::mat4 tireBR = glm::translate(model, glm::vec3(-0.8f, -0.222f, 2.06f));
+    tireBR = glm::translate(tireBR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
+    tireBR = glm::rotate(tireBR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+    tireBR = glm::translate(tireBR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
+    drawObject(tireBR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
+  }
 
   {
     //bat
-    for (int i =0;  i < manager->BOIDS_COUNT; i++){
+    for (int i =0;  i < BOIDS_COUNT; i++){
     	Boid b = manager->boids[i];
-
-      std::cout >> i >> std::endl;
 
       glm::vec3 direction = glm::normalize(b.velocity);
       float angle = glm::atan(direction.z, direction.x);
 
       glm::mat4 bat = zoom;
-      model = glm::translate(bat, glm::vec3(b.position.x+(0.5*i),b.position.y,b.position.z));
-      model = glm::rotate(bat, angle+glm::radians(-90.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+      bat = glm::translate(bat, glm::vec3(b.position.x+(0.5*i),b.position.y,b.position.z));
+      bat = glm::rotate(bat, angle+glm::radians(-90.0f), glm::vec3(1.0f, 1.0f, 1.0f));
       bat = glm::scale(bat, glm::vec3(0.01f));
-      drawObject(bat,numVerticiesTireR,VAO[5],true,boid_EBO, GL_TRIANGLES);
+      drawObject(bat,numVerticesBoid,VAO[5],true,boid_EBO, GL_TRIANGLES);
     }
   }
 
