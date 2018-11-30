@@ -2,7 +2,7 @@
 
 	BoidManager::BoidManager(int a_num_boids){
     for (int i = 0; i < a_num_boids; i++){
-			glm::vec3 startingPosition = glm::vec3(cos((float)i), 0.0f ,sin((float)i) );
+			glm::vec3 startingPosition = glm::vec3(cos((float)i),cos((float)i) ,sin((float)i) );
 			Boid boid =  Boid(startingPosition);
 			boids.push_back(boid);
 		}
@@ -57,11 +57,11 @@
 			if (boids[i].position.x < -50.0f){
 				boids[i].position.x = 50.0f;
 			}
-			if (boids[i].position.y > 8.0f){
-				boids[i].position.y = 6.0f;
+			if (boids[i].position.y > 30.0f){
+				boids[i].position.y = 10.0f;
 			}
-			if (boids[i].position.y < 6.0f){
-				boids[i].position.y = 8.0f;
+			if (boids[i].position.y < 10.0f){
+				boids[i].position.y = 30.0f;
 			}
 			if (boids[i].position.z > 50.0f){
 				boids[i].position.z = -50.0f;

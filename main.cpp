@@ -42,12 +42,14 @@ GLuint skyboxProgramId;
 GLuint skybox_vao = 00;
 GLuint skybox_vbo = 0;
 
+
+
 unsigned int skyboxTextures[NUM_SKYBOXES];
 unsigned int skyboxIndex;
 int lastSkyboxTime = 0;
 bool animateSkyboxes = false;
 
-const int BOIDS_COUNT = 200;
+const int BOIDS_COUNT = 75;
 BoidManager* manager;
 float deltaTime = 0.0f;
 float prevTime = 0.0f;
@@ -56,7 +58,11 @@ void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, un
 //Road(Cubic Bezier Curve)
 unsigned int VBO[6], VAO[6];
 
-unsigned int roadVBO,roadVAO;
+GLuint vertexBuffer;
+unsigned int personVAO;
+GLuint indexBuffer;
+float seconds;
+
 //platform
 GLuint platformTextureId;
 
@@ -69,14 +75,11 @@ unsigned int boid_EBO = 0;
 
 BezierCurveRoad road;
 
-//the xyz coordiantes the make up the path of the road
+//the xyz coordiantes the make up the road/path
 std::vector<glm::vec3> vertexPositionData;
 
-//vertices used to make the triangles to make the road aroud the beizier curve
-std::vector<glm::vec3> verticesVector;
-
 //used to find out the numVertices in an object when loading it
-unsigned int numVertices, numVerticiesCar, numVerticiesTireL, numVerticiesTireR, numVerticesBoid;
+unsigned int numVertices, numVerticiesCar, numVerticiesTireL, numVerticiesTireR, numVerticesBoid, numVerticiesPerson;
 
 glm::vec3 carPosition(0.0f,0.0f,0.0f);
 
@@ -120,7 +123,6 @@ static GLuint createTexture(std::string filename) {
 }
 
 static void createSkybox(void) {
-
   float skyboxPositions[] = {
     -1.0f,  1.0f, -1.0f,
     -1.0f, -1.0f, -1.0f,
@@ -178,17 +180,10 @@ static void createSkybox(void) {
 
 static void setupRoad(){
   vertexPositionData = road.getPath();
-  verticesVector = road.getRoad();
- //std::cout << "got path" << std::endl;
+
   glBindVertexArray(VAO[0]);
   glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
   glBufferData(GL_ARRAY_BUFFER, sizeof(GL_FLOAT) * road.getNumCurves()* road.getNumVertecies() * 3, &vertexPositionData[0], GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT) * 3, (void *)0);
-  glEnableVertexAttribArray(0);
-
-  glBindVertexArray(roadVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, roadVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GL_FLOAT)  *verticesVector.size()*3,&verticesVector[0], GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GL_FLOAT) * 3, (void *)0);
   glEnableVertexAttribArray(0);
 }
@@ -210,11 +205,9 @@ float rightTiereCenterZ = 0;
 static void createGeomentry(void) {
   glGenVertexArrays(6, VAO);
   glGenBuffers(6, VBO);
-  glGenVertexArrays(1, &roadVAO);
-  glGenBuffers(1, &roadVBO);
   setupRoad();
 
-    ObjMesh mesh, carMesh, tireMeshL, tireMeshR, boidMesh;
+    ObjMesh mesh, mesh3, carMesh, tireMeshL, tireMeshR, boidMesh;
 
   //load the platform(ground)
   {
@@ -351,7 +344,28 @@ static void createGeomentry(void) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boid_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesBoid * 3, indexDataBoid, GL_STATIC_DRAW);
 
+    // person
+    glGenVertexArrays(1, &personVAO);
+    glGenBuffers(1, &vertexBuffer);
+    mesh3.load("Models/cube.obj", true, true);
+    numVerticiesPerson = mesh3.getNumIndexedVertices();
+    std::vector<float> personData = mesh3.getData();
+    glBindVertexArray(personVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, numVerticiesPerson * sizeof(GL_FLOAT)*8, &personData[0],GL_STATIC_DRAW);
 
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+    glEnableVertexAttribArray(1);
+
+    unsigned int* indexDataPerson = mesh3.getTriangleIndices();
+    int numTrianglesPerson = mesh3.getNumTriangles();
+
+    glGenBuffers(1,&indexBuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesPerson * 3, indexDataPerson, GL_STATIC_DRAW);
 }
 
 int duration =0;
@@ -360,10 +374,10 @@ glm::vec4 lightPos;
 
 static void update(void) {
     int time = glutGet(GLUT_ELAPSED_TIME);
-
     int time2 = glutGet(GLUT_ELAPSED_TIME)/100;
     deltaTime = time2 - prevTime;
 	  prevTime = time2;
+    seconds = (float) glutGet(GLUT_ELAPSED_TIME)/1000.0f;
     manager->UpdateBoids(deltaTime);
 
     if((time - duration) >  0.1) {
@@ -418,6 +432,8 @@ static void update(void) {
 glm::vec3 carColor = glm::vec3(0.976, 0.003, 0.192);
 glm::vec3 platformColor = glm::vec3(0.094f, 0.447f, 0.074f);
 glm::vec3 tireColor= glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 batColor= glm::vec3(0.5f, 0.5f, 0.5f);
+glm::vec3 personColor= glm::vec3(0.172f, 0.176f, 0.505f);
 
 static void render(void) {
   int skyboxTexture = skyboxTextures[skyboxIndex];
@@ -512,13 +528,8 @@ static void render(void) {
 
     {   //road
       glm::mat4 roadMatrix = zoom;
-      roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,2.0,0.0));
-            //roadMatrix = glm::scale(roadMatrix,glm::vec3(100.0f, 100.0f, 100.0f));
-      drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
-
-      glBindVertexArray(roadVAO);
-      drawObject(roadMatrix,road.getNumNormals()*road.getNumCurves()*3,roadVAO,false,-1,GL_TRIANGLES);
-      //glDrawArrays(GL_TRIANGLES, 0,numNormal*numCurves*3);
+      roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,1.0,0.0));
+    drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
     }
 
     {    //platform
@@ -530,6 +541,92 @@ static void render(void) {
     platform = glm::scale(platform, glm::vec3(100.0f, 100.0f, 1.0f));
     drawObject(platform,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
   }
+
+  {
+    GLuint colourId = glGetUniformLocation(programId, "u_color");
+    glUniform3fv(colourId, 1, &personColor[0]);
+
+    //Torso
+    glm::mat4 torsoMatrix = zoom;
+    glm::mat4 torsoMatrix2 = zoom;
+    glm::mat4 leftLegMatrix2 = baseMatrix;
+    glm::mat4 rightLegMatrix2 = baseMatrix;
+  //torsoMatrix = glm::rotate(torsoMatrix, cos(seconds * 2.0f) * glm::radians(10.0f),glm::vec3(0.0f,1.0f,0.0f));
+    torsoMatrix = glm::translate(torsoMatrix, glm::vec3(-10.0f, abs((cos(seconds)))+1.5f, 5.0f));
+    torsoMatrix = glm::scale(torsoMatrix, glm::vec3(3.5f, 2.5f, 1.5f));
+    torsoMatrix = glm::scale(torsoMatrix, glm::vec3(0.05f));
+    torsoMatrix2 = glm::scale(torsoMatrix, glm::vec3(2.0f, 4.0f, 1.5f));
+    drawObject(torsoMatrix2, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    //Right Hip
+    glm::mat4 rightLegMatrix = glm::translate (torsoMatrix, glm::vec3(2.0,-2.0,0.0f));
+
+    //Left Hip
+    glm::mat4 leftLegMatrix = glm::translate (torsoMatrix, glm::vec3(-2.0,-2.0,0.0f));
+
+    //Right arm
+    glm::mat4 righArmMatrix = glm::translate(torsoMatrix, glm::vec3(3.0, 2.70, 0.0f));
+
+    //left arm
+    glm::mat4 leftArmMatrix = glm::translate(torsoMatrix, glm::vec3(-3.0, 2.70, 0.0f));
+
+    // Head
+    glm::mat4 headMatrix = glm::translate(torsoMatrix, glm::vec3(1.0, 2.5, 0.0f));
+
+    //Right Leg
+   //rightLegMatrix = glm::rotate(rightLegMatrix,glm::radians(30.0f)*sin(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    rightLegMatrix = glm::translate(rightLegMatrix, glm::vec3(-1.5f, -1.0f, 0.0f));
+    rightLegMatrix = glm::scale(rightLegMatrix, glm::vec3(0.5f, 2.0f, 1.5f));
+    drawObject(rightLegMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    //Right Knee
+    rightLegMatrix = glm::translate(rightLegMatrix, glm::vec3(-1.0f,-0.5,-2.5f));
+
+    // Lower Right Leg
+    //rightLegMatrix = glm::rotate(rightLegMatrix,glm::radians(30.0f)*sin(seconds)+ glm::radians (30.0f),glm::vec3(1.0f,0.0f,0.0f));
+    rightLegMatrix = glm::translate(rightLegMatrix, glm::vec3(1.0f, -1.0f,  2.5f));
+    rightLegMatrix = glm::scale(rightLegMatrix, glm::vec3(0.25f, 1.5f, 1.5f));
+    rightLegMatrix2 = glm::scale(rightLegMatrix, glm::vec3(2.5f, 1.0f, 0.5f));
+    drawObject(rightLegMatrix2, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    //Left Leg
+    //leftLegMatrix = glm::rotate(leftLegMatrix,glm::radians(-30.0f)*sin(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    leftLegMatrix = glm::translate(leftLegMatrix, glm::vec3(1.5f, -1.0f, 0.0f));
+    leftLegMatrix = glm::scale(leftLegMatrix, glm::vec3(0.5f, 2.0f, 1.5f));
+    drawObject(leftLegMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    //Left Knee
+    leftLegMatrix = glm::translate(leftLegMatrix, glm::vec3(-0.5f,0.5f,0.0f));
+
+    //Lower Left Leg
+  //  leftLegMatrix = glm::rotate(leftLegMatrix,glm::radians(-30.0f)*sin(seconds) + glm::radians (30.0f),glm::vec3(1.0f,0.0f,0.0f));
+    leftLegMatrix = glm::translate(leftLegMatrix, glm::vec3(0.5f, -2.0f, 0.0f));
+    leftLegMatrix = glm::scale(leftLegMatrix, glm::vec3(0.5f, 1.5f, 1.5f));
+    leftLegMatrix2 = glm::scale(leftLegMatrix, glm::vec3(2.0f, 1.0f, 0.75f));
+    drawObject(leftLegMatrix2, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    // Right arm
+    righArmMatrix = glm::rotate(righArmMatrix,glm::radians(30.0f)*(abs(cos(seconds))),glm::vec3(1.0f,0.0f,0.0f));
+    righArmMatrix = glm::translate(righArmMatrix, glm::vec3(-1.5f, -3.0f, 0.0f));
+    righArmMatrix = glm::scale(righArmMatrix, glm::vec3(0.5f, 2.5f, 1.5f));
+    drawObject(righArmMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    // Right elbow
+    //rightArmMatrix = glm::translate(rightArmMatrix, glm::vec3())
+
+    // left arm
+    leftArmMatrix = glm::rotate(leftArmMatrix,glm::radians(30.0f)*(abs(cos(seconds))),glm::vec3(1.0f,0.0f,0.0f));
+    leftArmMatrix = glm::translate(leftArmMatrix, glm::vec3(1.5f, -3.0f, 0.0f));
+    leftArmMatrix = glm::scale(leftArmMatrix, glm::vec3(0.5f, 2.5f, 1.5f));
+    drawObject(leftArmMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+
+    // head
+  //  headMatrix = glm::rotate(headMatrix,glm::radians(30.0f)*sin(seconds),glm::vec3(1.0f,0.0f,0.0f));
+    headMatrix = glm::translate(headMatrix, glm::vec3(-1.0f, 0.25f, 0.0f));
+    headMatrix = glm::scale(headMatrix, glm::vec3(1.0f, 1.0f, 1.5f));
+    drawObject(headMatrix, numVerticiesPerson, personVAO, true, indexBuffer, GL_TRIANGLES);
+  }
+
 
   { //car
     GLuint colourId = glGetUniformLocation(programId, "u_color");
@@ -543,7 +640,7 @@ static void render(void) {
     drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
 }
 
-{    //Tires
+  {    //Tires
     GLuint colourId = glGetUniformLocation(programId, "u_color");
     glUniform3fv(colourId, 1, &tireColor[0]);
     //Back Left Tire
@@ -578,6 +675,9 @@ static void render(void) {
 
   {
     //bat
+    GLuint colourId = glGetUniformLocation(programId, "u_color");
+    glUniform3fv(colourId, 1, &batColor[0]);
+
     for (int i =0;  i < manager->boids.size(); i++){
     	Boid b = manager->boids[i];
 
@@ -589,7 +689,7 @@ static void render(void) {
       bat = glm::translate(bat, b.position);
       bat = glm::translate(bat, glm::vec3(0.0f,15.0f,0.0f));
       bat = glm::rotate(bat, angle+glm::radians(-90.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-      bat = glm::scale(bat, glm::vec3(0.005f));
+      bat = glm::scale(bat, glm::vec3(0.01f));
       drawObject(bat,numVerticesBoid,VAO[5],true,boid_EBO, GL_TRIANGLES);
     }
   }
