@@ -49,6 +49,8 @@ bool animateSkyboxes = false;
 
 const int BOIDS_COUNT = 10;
 BoidManager* manager;
+float deltaTime = 0.0f;
+float prevTime = 0.0f;
 
 void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo,GLenum mode);
 //Road(Cubic Bezier Curve)
@@ -341,9 +343,16 @@ static void createGeomentry(void) {
 int duration =0;
 int carPositionIndex =0;
 glm::vec4 lightPos;
+
 static void update(void) {
-    int milliseconds = glutGet(GLUT_ELAPSED_TIME);
-    if((milliseconds - duration) >  0.1) {
+    int time = glutGet(GLUT_ELAPSED_TIME);
+
+    int time2 = glutGet(GLUT_ELAPSED_TIME)/100;
+    deltaTime = time2 - prevTime;
+	  prevTime = time2;
+    manager->UpdateBoids(deltaTime);
+
+    if((time - duration) >  0.1) {
 
       carPosition = vertexPositionData[carPositionIndex];
       carPositionIndex++;
@@ -356,7 +365,7 @@ static void update(void) {
       if(angle >= 360.0f) {
         angle = 0.0f;
       }
-      duration = milliseconds;
+      duration = time;
     }
 
     glm::vec4 lightPosDir[2] = {
@@ -386,7 +395,7 @@ static void update(void) {
            skyboxIndex = 0;
         }
 
-        lastSkyboxTime = milliseconds;
+        lastSkyboxTime = time;
      }
    }
 
@@ -550,7 +559,7 @@ static void render(void) {
 
   {
     //bat
-    for (int i =0;  i < BOIDS_COUNT; i++){
+    for (int i =0;  i < manager->boids.size(); i++){
     	Boid b = manager->boids[i];
 
       glm::vec3 direction = glm::normalize(b.velocity);
