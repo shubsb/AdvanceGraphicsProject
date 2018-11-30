@@ -22,6 +22,8 @@
 #include "ObjMesh.h"
 #include "trackball.hpp"
 #include "BezierCurveRoad.h"
+#include "Boid.h"
+#include "BoidManager.h"
 
 #define NUM_SHADERS 4
 #define SHADER_SWITCH_DELAY 5000
@@ -45,9 +47,12 @@ unsigned int skyboxIndex;
 int lastSkyboxTime = 0;
 bool animateSkyboxes = false;
 
+const int BOIDS_COUNT = 10;
+BoidManager* manager;
+
 void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool drawEbo, unsigned int ebo,GLenum mode);
 //Road(Cubic Bezier Curve)
-unsigned int VBO[5], VAO[5];
+unsigned int VBO[6], VAO[6];
 
 //platform
 GLuint platformTextureId;
@@ -57,6 +62,7 @@ unsigned int platformEBO = 0;
 unsigned int carEBO = 0;
 unsigned int tireL_EBO = 0;
 unsigned int tireR_EBO = 0;
+unsigned int boid_EBO = 0;
 
 BezierCurveRoad road;
 
@@ -188,11 +194,11 @@ float rightTiereCenterZ = 0;
 
 
 static void createGeomentry(void) {
-  glGenVertexArrays(5, VAO);
-  glGenBuffers(5, VBO);
+  glGenVertexArrays(6, VAO);
+  glGenBuffers(6, VBO);
   setupRoad();
 
-    ObjMesh mesh, carMesh, tireMeshL, tireMeshR;
+    ObjMesh mesh, carMesh, tireMeshL, tireMeshR, boidMesh;
 
   //load the platform(ground)
   {
@@ -308,6 +314,28 @@ static void createGeomentry(void) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tireR_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesTireR * 3, indexDataTireR, GL_STATIC_DRAW);
 
+
+    boidMesh.load("Models/bat.obj", true, true);
+    numVerticiesCar = boidMesh.getNumIndexedVertices();
+    std::vector<float> boidData = boidMesh.getData();
+    glBindVertexArray(VAO[5]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
+    glBufferData(GL_ARRAY_BUFFER, numVerticiesCar * sizeof(GL_FLOAT)*8, &boidData[0],GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*8, (void*)(sizeof(GL_FLOAT)*3));
+    glEnableVertexAttribArray(1);
+
+    unsigned int* indexDataBoid = boidMesh.getTriangleIndices();
+    int numTrianglesBoid = boidMesh.getNumTriangles();
+
+    glGenBuffers(1,&boid_EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boid_EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numTrianglesBoid * 3, indexDataBoid, GL_STATIC_DRAW);
+
+
 }
 
 int duration =0;
@@ -334,8 +362,6 @@ static void update(void) {
     glm::vec4 lightPosDir[2] = {
         glm::vec4(0.0f, 0.0f, -1.0f, 0.0f),
         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f)
-    //  glm::vec4(eyePosition.x,eyePosition.y,-eyePosition.z,1.0),
-    //  glm::vec4(eyePosition.x,eyePosition.y,eyePosition.z,1.0)//the position of the camera
     };
 
     float lightIntensity[2]{
@@ -364,23 +390,12 @@ static void update(void) {
      }
    }
 
-    // rotate the shape about the y-axis so that we can see the shading
-    // if (rotateObject) {
-    //   float degrees = (float)milliseconds / 80.0f;
-    //   angle = degrees;
-    // }
-
-    // move the light position over time along the x-axis, so we can see how it affects the shading
-    // if (animateLight) {
-    //   float t = milliseconds / 1000.0f;
-    //   lightOffsetY = sinf(t) * 100;
-    // }
-
     glutPostRedisplay();
 }
 glm::vec3 carColor = glm::vec3(0.976, 0.003, 0.192);
 glm::vec3 platformColor = glm::vec3(0.094f, 0.447f, 0.074f);
 glm::vec3 tireColor= glm::vec3(0.0f, 0.0f, 0.0f);
+
 static void render(void) {
   int skyboxTexture = skyboxTextures[skyboxIndex];
 
@@ -472,66 +487,85 @@ static void render(void) {
 
    glm::mat4 model = zoom;
 
-    {   //road
-      glm::mat4 roadMatrix = model;
-      roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,1.0,0.0));
-    drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+//     {   //road
+//       glm::mat4 roadMatrix = zoom;
+//       roadMatrix = glm::translate(roadMatrix, glm::vec3(0.0,1.0,0.0));
+//     drawObject(roadMatrix,road.getNumCurves()*road.getNumVertecies(),VAO[0],false,-1,GL_LINE_STRIP);
+//     }
+//
+//     {    //platform
+//     GLuint colourId = glGetUniformLocation(programId, "u_color");
+//     glUniform3fv(colourId, 1, &platformColor[0]);
+//     glm::mat4 platform = zoom;
+//     platform = glm::rotate(platform, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
+//     //model = glm::translate(model, glm::vec3(1,1,60));
+//     platform = glm::scale(platform, glm::vec3(100.0f, 100.0f, 1.0f));
+//     drawObject(platform,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
+//   }
+//
+//   { //car
+//     GLuint colourId = glGetUniformLocation(programId, "u_color");
+//       glUniform3fv(colourId, 1, &carColor[0]);
+//     //Car
+//     glm::mat4 car = zoom;
+//     car = glm::translate(car, carPosition);
+//     car = glm::translate(car,glm::vec3(0.0f,1.2f,0.0f));
+//     car = glm::rotate(car,glm::radians(90.0f),glm::vec3(0.0f,1.0f,0.0f));
+//     //model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
+//     drawObject(car,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
+// }
+//
+// {    //Tires
+//     GLuint colourId = glGetUniformLocation(programId, "u_color");
+//     glUniform3fv(colourId, 1, &tireColor[0]);
+//     //Back Left Tire
+//     glm::mat4 tireBL = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
+//      tireBL = glm::translate(tireBL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
+//     tireBL = glm::rotate(tireBL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+//      tireBL = glm::translate(tireBL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
+//     drawObject(tireBL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+//
+//     //Front Left Tire
+//     glm::mat4 tireFL = glm::translate(model, glm::vec3(0.58f, -0.352f, 1.88f));
+//     tireFL = glm::translate(tireFL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
+//     tireFL = glm::rotate(tireFL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+//     tireFL = glm::translate(tireFL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
+//     drawObject(tireFL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
+//
+//
+//     //front right tire
+//     glm::mat4 tireFR = glm::translate(model, glm::vec3(-0.8f, -0.222f, -0.73f));
+//     tireFR = glm::translate(tireFR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
+//     tireFR = glm::rotate(tireFR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+//     tireFR = glm::translate(tireFR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
+//     drawObject(tireFR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
+//
+//     //back right tire
+//     glm::mat4 tireBR = glm::translate(model, glm::vec3(-0.8f, -0.222f, 2.06f));
+//     tireBR = glm::translate(tireBR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
+//     tireBR = glm::rotate(tireBR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+//     tireBR = glm::translate(tireBR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
+//     drawObject(tireBR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
+//   }
+
+  {
+    //bat
+    for (int i =0;  i < manager->BOIDS_COUNT; i++){
+    	Boid b = manager->boids[i];
+
+      std::cout >> i >> std::endl;
+
+      glm::vec3 direction = glm::normalize(b.velocity);
+      float angle = glm::atan(direction.z, direction.x);
+
+      glm::mat4 bat = zoom;
+      model = glm::translate(bat, glm::vec3(b.position.x+(0.5*i),b.position.y,b.position.z));
+      model = glm::rotate(bat, angle+glm::radians(-90.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+      bat = glm::scale(bat, glm::vec3(0.01f));
+      drawObject(bat,numVerticiesTireR,VAO[5],true,boid_EBO, GL_TRIANGLES);
     }
-
-    {    //platform
-    GLuint colourId = glGetUniformLocation(programId, "u_color");
-    glUniform3fv(colourId, 1, &platformColor[0]);
-    model = zoom;
-    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1, 0, 0)); // rotate about the z-axis
-    //model = glm::translate(model, glm::vec3(1,1,60));
-    model = glm::scale(model, glm::vec3(100.0f, 100.0f, 1.0f));
-    drawObject(model,numVertices,VAO[1],true,platformEBO,GL_TRIANGLES);
   }
 
-  { //car
-    GLuint colourId = glGetUniformLocation(programId, "u_color");
-      glUniform3fv(colourId, 1, &carColor[0]);
-    //Car
-    model = zoom;
-    model = glm::translate(model, carPosition);
-    model = glm::translate(model,glm::vec3(0.0f,1.2f,0.0f));
-    model = glm::rotate(model,glm::radians(90.0f),glm::vec3(0.0f,1.0f,0.0f));
-    //model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
-    drawObject(model,numVerticiesCar,VAO[2],true,carEBO,GL_TRIANGLES);
-}
-
-{    //Tires
-    GLuint colourId = glGetUniformLocation(programId, "u_color");
-    glUniform3fv(colourId, 1, &tireColor[0]);
-    //Back Left Tire
-    glm::mat4 tireBL = glm::translate(model, glm::vec3(0.58f, -0.352f, -0.9f));
-     tireBL = glm::translate(tireBL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
-    tireBL = glm::rotate(tireBL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-     tireBL = glm::translate(tireBL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
-    drawObject(tireBL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
-
-    //Front Left Tire
-    glm::mat4 tireFL = glm::translate(model, glm::vec3(0.58f, -0.352f, 1.88f));
-    tireFL = glm::translate(tireFL, glm::vec3(0.0f,leftTiereCenterY,leftTiereCenterZ));
-    tireFL = glm::rotate(tireFL,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-    tireFL = glm::translate(tireFL, glm::vec3(0.0f,-leftTiereCenterY,-leftTiereCenterZ));
-    drawObject(tireFL,numVerticiesTireL,VAO[3],true,tireL_EBO, GL_TRIANGLES);
-
-
-    //front right tire
-    glm::mat4 tireFR = glm::translate(model, glm::vec3(-0.8f, -0.222f, -0.73f));
-    tireFR = glm::translate(tireFR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
-    tireFR = glm::rotate(tireFR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-    tireFR = glm::translate(tireFR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
-    drawObject(tireFR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
-
-    //back right tire
-    glm::mat4 tireBR = glm::translate(model, glm::vec3(-0.8f, -0.222f, 2.06f));
-    tireBR = glm::translate(tireBR, glm::vec3(0.0f,rightTiereCenterY,rightTiereCenterZ));
-    tireBR = glm::rotate(tireBR,glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
-    tireBR = glm::translate(tireBR, glm::vec3(0.0f,-rightTiereCenterY,-rightTiereCenterZ));
-    drawObject(tireBR,numVerticiesTireR,VAO[4],true,tireR_EBO, GL_TRIANGLES);
-  }
 
   	glutSwapBuffers();
 }
@@ -557,12 +591,9 @@ static void drawObject(glm::mat4 m, int numVertices, unsigned int vao, bool draw
   }
 }
 
-
 static void keyboard(unsigned char key, int x, int y) {
     std::cout << "Key pressed: " << key << std::endl;
 }
-
-
 
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
@@ -616,6 +647,8 @@ int main(int argc, char** argv) {
    rot *= rotx;
    rot *= rotz;
 
+   //BoidManger
+   manager = new BoidManager(BOIDS_COUNT);
 
    ShaderProgram skyboxProgram;
    skyboxProgram.loadShaders("shaders/skybox_vertex.glsl", "shaders/skybox_fragment.glsl");
